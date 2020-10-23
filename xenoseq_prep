@@ -13,9 +13,14 @@ print_usage() {
 	  printf "Usage: ./xenoseq_prep -f1 forward_reads.fq -f2 reverse_reads.fq (-c NUM_CORES)\n"
   }
 
+if [ "$#" -lt 2 ]; then
+    print_usage;
+	exit 1;
+fi
+
 while [ $# -gt 0 ]; do
 	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
-		printhelp;
+		print_usage;
 	elif [[ $1 =~ ^(-f1|--f1|-forward|--forward)$ ]]; then
 		f1=("$2")
 	elif [[ $1 =~ ^(-f2|--f2|-reverse|--reverse)$ ]]; then

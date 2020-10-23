@@ -12,16 +12,22 @@ cores=4
 print_usage() {
 	echo -e "XENOSEQ v0.5.0\n"
 	echo -e "contact: vandijk@evolbio.mpg.de\n"
-	echo -e "Usage:\n\t-q query_file ./xenoseq_main -s subject_file_1 -s subject_file_2  (-c NUM_CORES, -megahit, -blastn)"
+	echo -e "Usage:\n\t-q query_file ./xenoseq_main -s subject_file_1 -s subject_file_2 -o output_fasta (-c NUM_CORES, -megahit, -blastn)"
 	echo -e "Input options:
 	-q/--query\tFasta file in which to look for unique reads
 	-s/--subject\tFasta file(s) to compare to (reference for uniqueness)
+	-o/--output\tOutput file (fasta)
 Optional options:
 	-c/--cores\tNumber of threads to use in parallisable parts of the pipeline
 	-megahit\tInstead of spades, use megahit for contig assembly (much faster, but lower quality contigs)
-	-blastn\t\tInstead of bwa mem, compare query and subject with blastn (much slower, slightly more sensitive)"
-	exit 1;
+	-blastn\t\tInstead of bwa mem, compare query and subject with blastn (much slower, slightly more sensitive)"	
 }
+
+if [ "$#" -lt 3 ]; then	
+    print_usage;
+	echo -e "${RED}Not enough arguments given. See usage above. ${NC}"
+	exit 1;
+fi
 
 subjects=()
 cores=4
@@ -33,10 +39,13 @@ mkdir -p $DIR
 while [ $# -gt 0 ]; do
 	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
 		print_usage;
+		exit 1;
 	elif [[ $1 =~ ^(-s|--s|-subject|--subject)$ ]]; then
 		subjects+=("$2")
-	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
-		cores=("$2")
+	elif [[ $1 =~ ^(-q|--query)$ ]]; then
+		q=("$2")
+	elif [[ $1 =~ ^(-o|--output)$ ]]; then
+		o=("$2")		
 	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
 		cores=("$2")
 	elif [[ $1 =~ ^(-p|--prep)$ ]]; then
