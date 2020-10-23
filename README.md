@@ -8,9 +8,14 @@ Xenoseq is pipeline of (meta)genomic tools to extract contigs that are unique to
 To use xenoseq, a conda environment is provided. (see https://docs.conda.io/projects/conda/en/latest/) To install your conda environment, simply use: 
 
 > conda env create -f conda_env.yml
+> conda activate xenoseq
 
 If you prefer using other virtual environments, this yml-file will provide you with all the required packages and their version.
 
 ## Running 
 To test whether everything is working, try using the example program './xenoseq_example', which will use mock reads found in samples/reads and will search for
-(artficially added) unique contigs. Your unique contigs will be in the file "xenoseq_contigs.fasta". This example also benchmarks the quality of this (low coverage) in silico dataset to show how 100% of the unique contigs are retrieved, albeit not over their entire length.
+(artficially added) unique contigs:
+
+> ./xenoseq_example
+
+Your unique contigs will be in the file "xenoseq_contigs.fasta". This example also benchmarks the quality of this (low coverage) in silico dataset to show how 100% of the unique contigs are retrieved, albeit not over their entire length.
