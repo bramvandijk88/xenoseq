@@ -1,0 +1,32 @@
+(SUBJECT,)=glob_wildcards("alignment_files/{subject}.fasta")
+(QUERY,)=glob_wildcards("reads_prepped/{query}_prepped.fasta")
+
+rule all:
+    input:
+        expand("alignment_files/{query}.{subject}.bam", query=QUERY, subject=SUBJECT)
+
+rule bwa_index:
+	input:
+		database="alignment_files/{subject}.fasta"
+	output:	
+		done=touch("{subject}.done")
+	shell:
+		"bwa index -b 60000000 {input.database}"
+ 
+rule bwa_mem:
+    input:
+        bwa_index_done = "{subject}.done",
+        reads="reads_prepped/{query}",
+    output:
+        bam = "alignment_files/{query}.{subject}.bam"
+    threads: 8
+    shell:
+        "bwa mem -t {threads} alignment_files/{wildcards.subject}.fasta {input.reads} > {output}"
+
+rule samtools_sort:
+	input: 
+		bam="alignment_files/{query}.{subject}.bam"
+	output:
+		"alignment_files/{query}.{subject}.bam.sorted"
+	shell:
+		"samtools view -b {input} | samtools sort -@ {config[ncores]} -o {output}"

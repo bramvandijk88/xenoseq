@@ -1,0 +1,50 @@
+rule flash:
+	input:
+		"samples/reads/{sample}_reads1.fq",
+		"samples/reads/{sample}_reads2.fq"
+	output:
+		"reads_prepped/{sample}_flash.fq.extendedFrags.fastq.gz",
+		"reads_prepped/{sample}_flash.fq.notCombined_1.fastq.gz",
+		"reads_prepped/{sample}_flash.fq.notCombined_2.fastq.gz"
+	params:
+		base="reads_prepped/{sample}_flash.fq"
+	shell:
+		"bin/flash {input} -o {params.base} -z -M 100 > reads_prepped/flash.log"
+
+
+rule zcat:
+	input:
+		"reads_prepped/{sample}_flash.fq.extendedFrags.fastq.gz",
+		"reads_prepped/{sample}_flash.fq.notCombined_1.fastq.gz",
+		"reads_prepped/{sample}_flash.fq.notCombined_2.fastq.gz"
+	output:
+		"reads_prepped/{sample}_flash.fq"
+	shell:
+		"zcat {input} > {output}"
+
+rule prinseq:
+	input:
+		"reads_prepped/{sample}_flash.fq"
+	output:
+		"reads_prepped/{sample}_good.fasta"
+	params:
+		base="reads_prepped/{sample}"
+	shell:
+		"perl bin/prinseq-lite.pl -fastq {input} -out_format 1 -log -out_good {params.base}_good -out_bad {params.base}_bad -min_len 100 -min_qual_mean 25 -ns_max_p 10 -derep 14 > reads_prepped/prinseq.log"
+
+rule trim_headers:
+	input:
+		"reads_prepped/{sample}_good.fasta"
+	output:
+		"reads_prepped/{sample}_trimmed.fasta"
+	shell:
+		"source bin/functions.sh; trimheaders {input} 50 > {output}"
+
+rule make_uniq:
+	input:
+		"reads_prepped/{sample}_trimmed.fasta"
+	output: 
+		"reads_prepped/{sample}_prepped.fasta"
+	shell:
+		"source bin/functions.sh; makeidsuniq {input} > {output}"
+

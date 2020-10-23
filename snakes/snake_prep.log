@@ -1,0 +1,20 @@
+Job counts:
+	count	jobs
+	1	flash
+	1	make_uniq
+	1	prinseq
+	1	trim_headers
+	1	zcat
+	5
+Input and filter stats:
+	Input sequences: 80,908
+	Input bases: 16,583,859
+	Input mean length: 204.97
+	Good sequences: 80,907 (100.00%)
+	Good bases: 16,583,699
+	Good mean length: 204.97
+	Bad sequences: 1 (0.00%)
+	Bad bases: 160
+	Bad mean length: 160.00
+	Sequences filtered by specified parameters:
+	derep: 1

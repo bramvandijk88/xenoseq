@@ -1,0 +1,94 @@
+#!/bin/bash
+
+ORANGE='\033[0;33m' 	# WARNINGS
+RED='\033[0;31m'	# ERRORS
+GREEN='\033[0;32m'	# COMPLETION
+BLUE='\033[0;36m'	# FILES
+PRP='\033[0;35m'	# COSMETIC
+NC='\033[0m' # No Color
+
+cores=4
+
+print_usage() {
+	echo -e "XENOSEQ v0.5.0\n"
+	echo -e "contact: vandijk@evolbio.mpg.de\n"
+	echo -e "Usage:\n\t-q query_file ./xenoseq_main -s subject_file_1 -s subject_file_2  (-c NUM_CORES, -megahit, -blastn)"
+	echo -e "Input options:
+	-q/--query\tFasta file in which to look for unique reads
+	-s/--subject\tFasta file(s) to compare to (reference for uniqueness)
+Optional options:
+	-c/--cores\tNumber of threads to use in parallisable parts of the pipeline
+	-megahit\tInstead of spades, use megahit for contig assembly (much faster, but lower quality contigs)
+	-blastn\t\tInstead of bwa mem, compare query and subject with blastn (much slower, slightly more sensitive)"
+	exit 1;
+}
+
+subjects=()
+cores=4
+DIR='xenoseq_intermediates'
+mapping='bwa mem'      # 'bwa mem', 'blastn' [bwa mem]
+assembler='megahit' 	  # spades, megahit [spades]
+mkdir -p $DIR
+
+while [ $# -gt 0 ]; do
+	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
+		print_usage;
+	elif [[ $1 =~ ^(-s|--s|-subject|--subject)$ ]]; then
+		subjects+=("$2")
+	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
+		cores=("$2")
+	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
+		cores=("$2")
+	elif [[ $1 =~ ^(-p|--prep)$ ]]; then
+		prep=true
+	elif [[ $1 =~ ^(-megahit|--megahit)$ ]]; then
+		assembler='megahit'
+	elif [[ $1 =~ ^(-blastn|--blastn)$ ]]; then
+		mapping='blastn'		
+	elif [[ $1 == *"-"* ]]; then
+		v="${1/-/}"
+		declare $v="$2"
+	fi
+	shift
+done
+
+alnDir='alignment_files'
+mkdir -p $alnDir
+
+if [[ ! -f "Subject_index.done" ]]; then
+	echo -e "[xenoseq_main $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}subject${NC} files ${subjects[*]}"
+	cat ${subjects[*]} > $alnDir/Subjects.fasta
+	grep -v "^>" $alnDir/Subjects.fasta | awk 'BEGIN { ORS=""; print ">All_Subject_Reads_Concat\n" } { print }' > $alnDir/Subject_index.fasta
+	echo -e "[xenoseq_main $(date +%d-%m_%H:%M:%S)] ${GREEN}Done.${NC}"
+else
+	lastupdate=$(date -r Subject_index.done "+%m-%d-%Y %H:%M:%S")
+	echo -e "[xenoseq_main $(date +%d-%m_%H:%M:%S)] ${ORANGE}Note! Recycling prebuild Subject-index from ${lastupdate}${NC}"
+fi;
+
+if [[ $mapping == "bwa mem" ]]; then
+	queryfilename="${q##*/}"
+	echo -e "[xenoseq_main $(date +%d-%m_%H:%M:%S)] Mapping query ${BLUE}$queryfilename${NC} to ${BLUE}subject${NC} files using $mapping"
+	snakemake -s snakes/snake_bwa_sam $alnDir/${queryfilename}.Subject_index.bam.sorted --config ncores="${cores}" --cores ${cores} --quiet 2> logs/snake_bwa_sam.log
+	echo -e "[xenoseq_main $(date +%d-%m_%H:%M:%S)] ${GREEN}Done.${NC}"
+	samtools view -f 4 ${alnDir}/${queryfilename}.Subject_index.bam.sorted > ${alnDir}/${queryfilename}.Subject_index.bam.uniq 2>&1
+	samtools fasta ${alnDir}/${queryfilename}.Subject_index.bam.uniq > ${DIR}/${queryfilename}_uniq_reads.fasta 2>&1
+elif [[ $mapping == 'blastn' ]]; then
+	python -u seek_uniq_seq.py -q $q -s $alnDir/Subject_index.fasta -o ${DIR}/${queryfilename}_uniq_reads.fasta -m
+else	
+	echo -e "[xenoseq_main $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: mapping tool not recognised! (exit 1)${NC}"
+	exit 1;
+fi
+
+if [[ $assembler == "megahit" ]]; then
+	rm -rf ${DIR}/${queryfilename}_contigs
+	megahit -r ${DIR}/${queryfilename}_uniq_reads.fasta -o ${DIR}/${queryfilename}_contigs 2> logs/megahit.log
+	mv ${DIR}/${queryfilename}_contigs/final.contigs.fa ./${o}
+elif [[ $assembler == "spades" ]]; then
+	spades.py -s ${DIR}/${queryfilename}_uniq_reads.fasta --only-assembler -o ${DIR}/${queryfilename}_contigs 2> logs/spades.log
+	mv ${DIR}/${queryfilename}_contigs/contigs.fasta ./${o}
+else
+	echo -e "[xenoseq_main $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: assembler not recognised! (exit 1)${NC}"
+	exit 1;
+fi
+
+echo -e "[xenoseq_main $(date +%d-%m_%H:%M:%S)] ${GREEN}Complete! Find your unique contigs in ${o}${NC}"

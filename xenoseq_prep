@@ -1,0 +1,36 @@
+#!/bin/bash
+
+ORANGE='\033[0;33m' 	# WARNINGS
+RED='\033[0;31m'	# ERRORS
+GREEN='\033[0;32m'	# COMPLETION
+BLUE='\033[0;36m'	# FILES
+PRP='\033[0;35m'	# COSMETIC
+NC='\033[0m' # No Color
+
+cores=4
+
+print_usage() {
+	  printf "Usage: ./xenoseq_prep -f1 forward_reads.fq -f2 reverse_reads.fq (-c NUM_CORES)\n"
+  }
+
+while [ $# -gt 0 ]; do
+	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
+		printhelp;
+	elif [[ $1 =~ ^(-f1|--f1|-forward|--forward)$ ]]; then
+		f1=("$2")
+	elif [[ $1 =~ ^(-f2|--f2|-reverse|--reverse)$ ]]; then
+		f2=("$2")
+	elif [[ $1 =~ ^(-o|--o|-output|--output)$ ]]; then
+		output=("$2")
+	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
+		cores=("$2")
+	elif [[ $1 == *"-"* ]]; then	 # Capture any other flag in variable just in case
+		v="${1/-/}"
+		declare $v="$2"
+	fi
+	shift
+done
+
+echo -e "[xenoseq_prep $(date +%d-%m_%H:%M:%S)] $BLUE$(basename $f1)$NC + $BLUE$(basename $f2)$NC --> ${BLUE}${output}_prepped.fasta${NC}"
+
+snakemake -s snakes/snake_prep reads_prepped/${output}_prepped.fasta --cores ${cores} --quiet 2> logs/snake_prep.log
