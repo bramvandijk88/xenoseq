@@ -12,39 +12,29 @@ query=$fullquery
 num_hq_contigs_assembled=$(grep -c '>' $query)
 
 subject=$2  # Subject = de facto unique sequences
+dir=$(dirname $query)
+cp $subject $dir/intermediate_files
+subject=${dir}/intermediate_files/$(basename $subject)
 
 if [ "$#" -ne 2 ]; then
     echo 'usage: compare_contigs.py <query> <subject>'
     exit 0
 fi
 
-DIR='xenoseq_benchmark'
-mkdir -p $DIR
-cp $query $DIR/
-cp $subject $DIR/
-cd $DIR
 
-subject=$(basename -- "$subject")
-
-echo "[xenoseq_comp $(date +%d-%m_%H:%M:%S)] Building blast database for subject file $subject"
+#echo "[xenoseq_comp    $(date +%d-%m_%H:%M:%S)] Building blast database for subject file $subject"
 makeblastdb -in $subject -dbtype nucl > /dev/null
-echo "[xenoseq_comp $(date +%d-%m_%H:%M:%S)] Blasting query $query against database"
-echo -e 'query\tsubject\tpercid\tlen\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore' > 'fishing_results.csv'
+#echo "[xenoseq_comp $(date +%d-%m_%H:%M:%S)] Blasting query $query against database"
+echo -e 'query\tsubject\tpercid\tlen\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore' > ${dir}/'xenoseq_compare.csv'
 
-blastn -query $query -db $subject -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen qseq sseq" >> 'fishing_results.csv'
-
-#echo -e '\nResults below (sorted by alignment length):'
-#echo -e 'query\tsubject\tpercid\tlen\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen' | cut -d$'\t' -f 1-10
-#cat fishing_results.csv | sort -k 4 -nr | cut -d$'\t' -f 1-10
-#echo -e 'Results above (sorted by alignment length):\n'
-
+blastn -query $query -db $subject -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen qseq sseq" >> ${dir}/'xenoseq_compare.csv'
 
 num_uniq_defacto=$(grep -c '>' $subject)
 tot_uniq_nt=$(grep -v '>' $subject | wc | awk '{print $3-$1}')
-tot_uniq_return=$(tail -n +2 fishing_results.csv | awk -F "\t" '{ sum += $4; n++ } END { if (n > 0) print sum ; }')
-num_contigs_hit=$(tail fishing_results.csv -n +2 | cut -d$'\t' -f1 | sort | uniq | wc -l)
+tot_uniq_return=$(tail -n +2 ${dir}/xenoseq_compare.csv | awk -F "\t" '{ sum += $4; n++ } END { if (n > 0) print sum ; }')
+num_contigs_hit=$(tail ${dir}/xenoseq_compare.csv -n +2 | cut -d$'\t' -f1 | sort | uniq | wc -l)
 
-mge_coverage=$(tail -n +2 fishing_results.csv | awk -F "\t" '{print $4/$14}' | awk '{ sum += $1; n++ } END { if (n > 0) print sum / n; }')
+mge_coverage=$(tail -n +2 ${dir}/xenoseq_compare.csv | awk -F "\t" '{print $4/$14}' | awk '{ sum += $1; n++ } END { if (n > 0) print sum / n; }')
 nt_retrieved=$(echo "scale=5 ; ($tot_uniq_return/$tot_uniq_nt)" | bc)
 tp=$num_contigs_hit
 fp=$(echo "scale=5 ; ($num_hq_contigs_assembled-$num_contigs_hit)" | bc)
@@ -65,18 +55,5 @@ if [[ $num_hq_contigs_assembled > 0 ]]; then
 fi
 fnr=$(echo "scale=5 ; $fn/($tp+$fn)" | bc)
 
-
-
-#echo -e "Number of unique sequences hidden:\t${num_uniq_defacto}"
-#echo -e "Number of contigs assembled:\t$num_contigs_assembled"
-#echo -e "Number of good contigs (>$minlen) assembled:\t$num_hq_contigs_assembled"
-#echo -e "Number of good contigs that map to unique seqs:\t${num_contigs_hit}"
-#echo -e "\nTrue positives:\t$tp\nTrue positive rate:\t$tpr"
-#echo -e "False positives:\t$fp\nFalse positive rate:$fpr"
-#echo -e "Nucl coverage of true positives:\t$mge_coverage" 
-#echo -e "Total fraction of unique nts retrieved:\t$nt_retrieved" 
-#echo -e "Fraction of MGEs retrieved:\t$frac"
-#echo -e "(detailed results stored in directory 'xenoseq_benchmark')\n"
-
 echo -e "Num_uniq_hidden\tTotal_contigs\tTotal_contigs_hq\tTrue_positives\tFalse_positives\tFraction_uniq_nts_retrieved\tNT_coverage_hit_mges\tFraction_uniq_seqs_retrieved"
-echo -e "${num_uniq_defacto}\t$num_contigs_assembled\t$num_hq_contigs_assembled\t${num_contigs_hit}\t$fp\t$nt_retrieved\t$mge_coverage\t$frac\n"
+echo -e "${num_uniq_defacto}\t$num_contigs_assembled\t$num_hq_contigs_assembled\t${num_contigs_hit}\t$fp\t$nt_retrieved\t$mge_coverage\t$frac"

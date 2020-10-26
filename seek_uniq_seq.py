@@ -102,7 +102,7 @@ def main(argv):
     for i,file in enumerate(chunks):
         now = datetime.now()
         dt_string = now.strftime("%d-%m_%H:%M:%S")
-        print("[xenoseq_blast "+dt_string+"] So anyway... I'm busy blasting... "+str(round(i/len(chunks)*100,2))+"%")
+        print("[xenoseq_blast   "+dt_string+"] So anyway... I'm busy blasting... "+str(round(i/len(chunks)*100,2))+"%")
         
         blastn_cline = NcbiblastnCommandline(cmd='blastn',query=file, db=subject, num_threads=8, evalue=1e-5, perc_identity=90, outfmt=5, out="reads_all_vs_all.xml")
        

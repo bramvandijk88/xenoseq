@@ -8,10 +8,12 @@ PRP='\033[0;35m'	# COSMETIC
 NC='\033[0m' # No Color
 
 cores=4
+source bin/functions.sh; 		# Simple custom-made functions to manipulate fasta files
 
 print_usage() {
-	  printf "Usage: ./xenoseq_prep -f1 forward_reads.fq -f2 reverse_reads.fq (-c NUM_CORES)\n"
+	  printf "Usage: ./xenoseq_prep -f1 forward_reads.fq -f2 reverse_reads.fq -o <output_filename> (-c NUM_CORES)\n"
   }
+
 
 if [ "$#" -lt 2 ]; then
     print_usage;
@@ -36,6 +38,21 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-echo -e "[xenoseq_prep $(date +%d-%m_%H:%M:%S)] $BLUE$(basename $f1)$NC + $BLUE$(basename $f2)$NC --> ${BLUE}${output}_prepped.fasta${NC}"
 
-snakemake -s snakes/snake_prep reads_prepped/${output}_prepped.fasta --cores ${cores} --quiet 2> logs/snake_prep.log
+mkdir -p $(dirname $output)
+filename=$(basename -- "$output")
+filename="${filename%.*}"
+
+echo -en "[xenoseq_prep    $(date +%d-%m_%H:%M:%S)] FLASh... "
+./bin/flash $f1 $f2 -o ${output}.flash -z -M 100 > ${output}.flash.log
+echo -e "${GREEN}Done.${NC}"
+zcat ${output}.flash.extendedFrags.fastq.gz ${output}.flash.notCombined_1.fastq.gz ${output}.flash.notCombined_2.fastq.gz > ${output}.flash.fq
+echo -en "[xenoseq_prep    $(date +%d-%m_%H:%M:%S)] PRINSEQ-lite... "
+perl bin/prinseq-lite.pl -fastq ${output}.flash.fq -out_format 1 -log -out_good ${output}.good -out_bad ${output}.bad -min_len 100 -min_qual_mean 25 -ns_max_p 10 -derep 14 2> ${output}.prinseq.log
+echo -e "${GREEN}Done.${NC}"
+echo -en "[xenoseq_prep    $(date +%d-%m_%H:%M:%S)] Verifying fasta headers... "
+trimheaders ${output}.good.fasta 50 > ${output}.trimmed.fasta
+makeidsuniq ${output}.trimmed.fasta > $(dirname $output)/${filename}_prepped.fasta
+echo -e "${GREEN}Done.${NC}"
+
+echo -e "[xenoseq_prep    $(date +%d-%m_%H:%M:%S)] ${GREEN}Preperation complete:${NC} $BLUE$(basename $f1)$NC + $BLUE$(basename $f2)$NC --> ${BLUE}$(dirname $output)/${filename}_prepped.fasta${NC}"

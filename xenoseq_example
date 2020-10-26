@@ -1,5 +1,9 @@
 #!/bin/bash
-
+#
+# This example runs xenoseq_prep and the main xenoseq pipeline, and saves the output in INSTALL_LOCATION/xenoseq_example_results
+#
+#
+########
 cores=4
 
 ORANGE='\033[0;33m' 	# WARNINGS
@@ -8,31 +12,30 @@ GREEN='\033[0;32m'	# COMPLETION
 BLUE='\033[0;36m'	# FILES
 PRP='\033[0;35m'	# COSMETIC
 NC='\033[0m' # No Color
-mkdir -p logs
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
-echo "SS |  SS |  ______   _______    ______    _______   ______    ______  ";
-echo "SS  \/SS/  /      \ /       \  /      \  /       | /      \  /      \ ";
-echo " SS  SS<  /SSSSSS  |SSSSSSS  |/SSSSSS  |/SSSSSSS/ /SSSSSS  |/SSSSSS  |";
-echo "  SSSS  \ SS    SS |SS |  SS |SS |  SS |SS      \ SS    SS |SS |  SS |";
-echo " SS /SS  |SSSSSSSS/ SS |  SS |SS \__SS | SSSSSS  |SSSSSSSS/ SS \__SS |";
-echo "SS |  SS |SS       |SS |  SS |SS    SS/ /     SS/ SS       |SS    SS |";
-echo "SS/   SS/  SSSSSSS/ SS/   SS/  SSSSSS/  SSSSSSS/   SSSSSSS/  SSSSSSS |";
-echo "                                                                  SS |";
-echo "                                                                  SS |";
-echo -e "                                                                  SS/ ${NC}\n";
+echo "AT |  GC |  ______   _______    ______    _______   ______    ______  ";
+echo "GG  \/AG/  /      \ /       \  /      \  /       | /      \  /      \ ";
+echo " TA  TT<  /GATACT  |TAAATGG  |/CCGTAA  |/AATAAAS/ /ATTTCT  |/ATGTTA  |";
+echo "  TGAC  \ AA    GA |TG |  GG |AG |  AG |TT      \ TT    CG |GA |  AT |";
+echo " AA /AT  |GATCCCGT/ TA |  AA |CG \__AG | GGAACT  |TACGGGTA/ GT \__AT |";
+echo "AA |  GC |CC       |GA |  GT |GC    GT/ /     GG/ TA       |AG    AT |";
+echo "GG/   TG/  GTAGGCC/ CA/   TT/  TAAATG/  ATGCGCG/   ATGCAAT/  AGGGTTT |";
+echo "                                                                  AA |";
+echo "                                                                  AA |";
+echo -e "                                                                  AA/ ${NC}\n";
 
 # 1) The first for loop preps all the read in the example directory (samples/reads)
 # so that we have merged and quality checked reads in FASTA format:
 
-echo -e "\n-= Preprocessing =- (${cores} threads)"
-for file in Horizontal Ancestral Vertical; do
-    command="./xenoseq_prep -f1 samples/reads/${file}_reads1.fq -f2 samples/reads/${file}_reads2.fq -c $cores -o ${file}"
-    echo -e "[xenoseq_cmd  $(date +%d-%m_%H:%M:%S)] ${ORANGE}$command${NC}"
+echo -e "\n-= Preprocessing =- (${cores} threads)"  # Preparing (trim, QC, and merge paired reads) for 3 example files
+for file in Ancestral Vertical Horizontal; do    
+    command="./xenoseq_prep -f1 samples/reads/${file}_reads1.fq -f2 samples/reads/${file}_reads2.fq -c $cores -o example_out/reads/${file}.fasta"
+    echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${ORANGE}$command${NC}"
     eval $command
 done;
-echo -e "[xenoseq_prep $(date +%d-%m_%H:%M:%S)] ${GREEN}Preprocessing finished succesfully.${NC}"
+echo -e "[xenoseq_prep    $(date +%d-%m_%H:%M:%S)] ${GREEN}Preprocessing finished succesfully for all samples.${NC}"
 
 # 2) The second part is the core xenoseq pipeline, which does the following:
     # 2.1) Concatenate all SUBJECT reads (here the "Ancetral" and "Vertical" reads) into one large sequence
@@ -43,19 +46,20 @@ echo -e "[xenoseq_prep $(date +%d-%m_%H:%M:%S)] ${GREEN}Preprocessing finished s
     # 2.5) Assemble reads into contigs using spades (or megahit if you're in a hurry)
 
 echo -e "\n-= Main xenoseq pipeline =- (${cores} threads)"
-command="./xenoseq_main -s reads_prepped/Ancestral_prepped.fasta -s reads_prepped/Vertical_prepped.fasta -q reads_prepped/Horizontal_prepped.fasta -c $cores -o xenoseq_contigs.fasta"
-echo -e "[xenoseq_cmd  $(date +%d-%m_%H:%M:%S)] ${ORANGE}$command${NC}"
+# Below is an example command for prepping your paired-end reads. If you already have prepped fasta file, this step isn't necessary. 
+command="./xenoseq -s example_out/reads/Ancestral_prepped.fasta -s example_out/reads/Vertical_prepped.fasta -q example_out/reads/Horizontal_prepped.fasta -c $cores -o example_out/unique_contigs.fasta"
+echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${ORANGE}$command${NC}"
 eval $command
 
 # 3) Post-analysis stuff
     # 3.1) xenoseq_compare  compares the contigs fished out with the actually known sequences, to see how well the pipeline performs
-    # 3.2) xenoseq_stats    calculates the read depth and contigs lengths
+    # 3.2) WIP: xenoseq_stats    calculates the read depth and contigs lengths WIP
 
 echo -e "\n-= Post analysis stuff (WIP) =- (${cores} threads)"
-command="./xenoseq_compare xenoseq_contigs.fasta samples/known_unique_sequences.fasta > summary_statistics.txt"
-echo -e "[xenoseq_cmd  $(date +%d-%m_%H:%M:%S)] ${ORANGE}$command${NC}"
+command="./xenoseq_compare example_out/unique_contigs.fasta samples/known_unique_sequences.fasta > example_out/summary_statistics.txt"
+echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${ORANGE}$command${NC}"
 eval $command
-echo -e "[xenoseq_comp $(date +%d-%m_%H:%M:%S)] ${GREEN}Completed comparison of contigs with known unique sequences, see xenoseq_benchmark/summary_statistics.txt${NC}"
+echo -e "[xenoseq_comp     $(date +%d-%m_%H:%M:%S)] Completed comparison of ${BLUE}assembled contigs${NC} with ${BLUE}known unique sequences${NC} in the example dataset, see example_out/summary_statistics.txt"
 
-echo -e "[xenoseq_exam$(date +%d-%m_%H:%M:%S)] ${GREEN}Completed example script. Everything seems to be working.${NC}"
+echo -e "[xenoseq_example  $(date +%d-%m_%H:%M:%S)] ${GREEN}Completed example script. Everything seems to be working.${NC}"
 

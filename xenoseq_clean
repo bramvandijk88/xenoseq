@@ -13,7 +13,9 @@ rm -rf xenoseq_intermediates
 rm -rf logs
 rm -rf alignment_files
 rm -rf xenoseq_results
+rm -rf example_out
 rm -rf xenoseq_benchmark
+rm -rf output
 rm -rf *.done
 rm -rf *.fasta
 echo -e "${GREEN}Done.${NC}"
