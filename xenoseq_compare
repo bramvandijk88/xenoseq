@@ -13,8 +13,9 @@ num_hq_contigs_assembled=$(grep -c '>' $query)
 
 subject=$2  # Subject = de facto unique sequences
 dir=$(dirname $query)
-cp $subject $dir/intermediate_files
-subject=${dir}/intermediate_files/$(basename $subject)
+
+#cp $subject $dir/intermediate_files
+#subject=${dir}/intermediate_files/$(basename $subject)
 
 if [ "$#" -ne 2 ]; then
     echo 'usage: compare_contigs.py <query> <subject>'
