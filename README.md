@@ -1,6 +1,6 @@
 # Xenoseq
-Pipeline to compare multiple short-read libraries, 
-and assemble contigs that only occur in one library.
+Simple metagenomic pipeline to compare multiple short-read
+libraries, and assemble contigs that only occur in one library.
 
 ## Overview
 Xenoseq is pipeline of (meta)genomic tools to extract
