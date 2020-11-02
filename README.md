@@ -72,8 +72,8 @@ entire length)
 If you want to run only the main pipeline which takes raw reads
 and assembles unique contigs, this is an example command:
 
-```
-> ./xenoseq \
+```bash
+xenoseq \
 	-s subject_library_1.fasta \
 	-s subject_library_2.fasta \
 	-s subject_library_n.fasta \
@@ -83,11 +83,12 @@ and assembles unique contigs, this is an example command:
 	(-c 4) 		# Nr. of threads
 	(-megahit) 	# Megahit instead of spades
 	(-blastn) 	# Blastn instead of BWA mem
+```
 
 Or see the help page:
 
-> ./xenoseq -h
-
+```
+xenoseq -h
 ```
 
 ## Provided scripts / binaries:
