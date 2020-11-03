@@ -19,14 +19,17 @@ echo "GG/   TG/  GTAGGCC/ CA/   TT/  TAAATG/  ATGCGCG/   ATGCAAT/  AGGGTTT |";
 echo "                                                                  AA |";
 echo "                                                                  AA |";
 echo -e "                                                                  AA/ ${NC}\n";
+echo -e "----------------------------------------------------------------------"
+echo -e "                          (XENOSEQ v0.5.1)                            "
+echo -e "----------------------------------------------------------------------\n"
 cores=4
 
 print_usage() {
-	echo -e "XENOSEQ v0.5.0\n"
+	echo -e "XENOSEQ v0.5.2\n"
 	echo -e "contact: vandijk@evolbio.mpg.de\n"
 	echo -e "Usage:\n\t-q query_file ./xenoseq_main -s subject_file_1 -s subject_file_2 -o output_fasta (-c NUM_CORES, -megahit, -blastn)"
 	echo -e "Input options:
-	-q/--query\tFasta file in which to look for unique reads
+	-q/--query\tFasta file(s) in which to look for unique reads
 	-s/--subject\tFasta file(s) to compare to (reference for uniqueness)
 	-o/--output\tOutput file (fasta)
 Optional options:
@@ -42,6 +45,7 @@ if [ "$#" -lt 3 ]; then
 fi
 
 subjects=()
+queries=()
 cores=4
 mapping='bwa mem'      # 'bwa mem', 'blastn' [bwa mem]
 assembler='spades' 	  # spades, megahit [spades]
@@ -53,7 +57,7 @@ while [ $# -gt 0 ]; do
 	elif [[ $1 =~ ^(-s|--s|-subject|--subject)$ ]]; then
 		subjects+=("$2")
 	elif [[ $1 =~ ^(-q|--query)$ ]]; then
-		q=("$2")
+		queries+=("$2")
 	elif [[ $1 =~ ^(-o|--output)$ ]]; then
 		o=("$2")		
 	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
@@ -73,8 +77,8 @@ done
 
 ## Check if all required variables are set
 
-if [[ -z "$q" ]]; then
-	echo -e "${RED}ERROR: Query file (-q) not given. See help below.${NC}"
+if [[ ${#queries[@]} == 0 ]]; then
+	echo -e "${RED}ERROR: Zero query files (-q) not given. See help below.${NC}"
 	print_usage;
 fi
 if [[ ${#subjects[@]} == 0 ]]; then
@@ -93,10 +97,13 @@ mkdir -p $dir
 mkdir -p $dir/logs
 mkdir -p $dir/intermediate_files
 
+echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}query${NC} files ${queries[*]} to ${dir}/intermediate_files/Queries.fasta"
+cat ${subjects[*]} > ${dir}/intermediate_files/Queries.fasta
+q=${dir}/intermediate_files/Queries.fasta
 
 echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}subject${NC} files ${subjects[*]} to ${dir}/intermediate_files/Subjects.fasta"
 cat ${subjects[*]} > ${dir}/intermediate_files/Subjects.fasta
-grep -v "^>" ${dir}/intermediate_files/Subjects.fasta | awk '{if(NR==1){print ">All_Subject_Read_Concat"} print $0 }' > ${dir}/intermediate_files/Subject_index.fasta
+grep -v "^>" ${dir}/intermediate_files/Subjects.fasta | awk 'BEGIN{num=1} { if ((NR % 5000000) == 1) {printf(">Subject_Chunk_"num"\n");num++} print; }' > ${dir}/intermediate_files/Subject_index.fasta
 
 echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${GREEN}Done.${NC}"
 

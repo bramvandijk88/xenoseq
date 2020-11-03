@@ -1,0 +1,7 @@
+---------------------------------------------------------------------------
+0.4.0		Core pipeline based on Quistad et al (2020) using blastn for read comparison and megahit for assembly. It works... but it's slow and delivers poor contigs.
+---------------------------------------------------------------------------
+0.5.0		Improved read comparison by using BWA index with concatenated reads (from V+A) as a reference genome. This speeds up the analysis ~30 fold, but I have yet
+		to run the benchmarks. So far the tests seems at least as good as 0.4.0 though.
+0.5.1		Large subject libraries could run out of memory. I fixed that by chopping up the concatenated reference genome into pieces of 5,000,000 lines (=! reads) each.
+0.5.2		In parallel with the Galaxy tool, I've made sure you can use multiple subject and query files. 
