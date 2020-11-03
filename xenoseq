@@ -27,7 +27,7 @@ cores=4
 print_usage() {
 	echo -e "XENOSEQ v0.5.2\n"
 	echo -e "contact: vandijk@evolbio.mpg.de\n"
-	echo -e "Usage:\n\t-q query_file ./xenoseq_main -s subject_file_1 -s subject_file_2 -o output_fasta (-c NUM_CORES, -megahit, -blastn)"
+	echo -e "Usage:\n\t xenoseq -q query_file -s subject_file_1 -s subject_file_2 -o output_fasta (-c NUM_CORES, -megahit, -blastn)"
 	echo -e "Input options:
 	-q/--query\tFasta file(s) in which to look for unique reads
 	-s/--subject\tFasta file(s) to compare to (reference for uniqueness)
