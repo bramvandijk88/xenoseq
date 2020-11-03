@@ -20,7 +20,7 @@ echo "                                                                  AA |";
 echo "                                                                  AA |";
 echo -e "                                                                  AA/ ${NC}\n";
 echo -e "----------------------------------------------------------------------"
-echo -e "                          (XENOSEQ v0.5.1)                            "
+echo -e "                          (XENOSEQ v0.5.2)                            "
 echo -e "----------------------------------------------------------------------\n"
 cores=4
 
@@ -75,6 +75,16 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
+# Function to check if previous command was succesful
+function success() { 
+	if [ $1 -eq 0 ]; then
+  		echo -e "${GREEN}Done.${NC} (completed at $(date +%d-%m_%H:%M:%S))"
+	else
+  		echo -e "${RED}Error in previous step. See relevant log files in ${dir}/logs (exit 0).${NC}" >&2
+  		exit 0;
+	fi
+}
+
 ## Check if all required variables are set
 
 if [[ ${#queries[@]} == 0 ]]; then
@@ -97,39 +107,41 @@ mkdir -p $dir
 mkdir -p $dir/logs
 mkdir -p $dir/intermediate_files
 
-echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}query${NC} files ${queries[*]} to ${dir}/intermediate_files/Queries.fasta"
-cat ${subjects[*]} > ${dir}/intermediate_files/Queries.fasta
+echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}query files${NC} to ${dir}/intermediate_files/${BLUE}Queries.fasta${NC}... "
+cat ${queries[*]} > ${dir}/intermediate_files/Queries.fasta
+success $?
 q=${dir}/intermediate_files/Queries.fasta
 
-echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}subject${NC} files ${subjects[*]} to ${dir}/intermediate_files/Subjects.fasta"
-cat ${subjects[*]} > ${dir}/intermediate_files/Subjects.fasta
-grep -v "^>" ${dir}/intermediate_files/Subjects.fasta | awk 'BEGIN{num=1} { if ((NR % 5000000) == 1) {printf(">Subject_Chunk_"num"\n");num++} print; }' > ${dir}/intermediate_files/Subject_index.fasta
 
-echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${GREEN}Done.${NC}"
+
+echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}subject files${NC} to ${dir}/intermediate_files/${BLUE}Subjects.fasta${NC}... "
+cat ${subjects[*]} > ${dir}/intermediate_files/Subjects.fasta
+grep -v "^>" ${dir}/intermediate_files/Subjects.fasta | awk 'BEGIN{num=1} { if ((NR % 5000000) == 1) {printf(">Subject_Chunk_"num"\n");num++} print; }' > ${dir}/intermediate_files/Subjects_index.fasta
+success $?
 
 queryfilename="${q##*/}"
 queryfilename_noext="${queryfilename%.*}"
 
 if [[ $mapping == "bwa mem" ]]; then	
-	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping query ${BLUE}$queryfilename${NC} to ${BLUE}subject${NC} files using $mapping"
-	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Building ${BLUE}subject${NC} Bwa index... "
-	bwa index -b 60000000 ${dir}/intermediate_files/Subject_index.fasta 2> ${dir}/logs/bwa_index.log
-	echo -e "${GREEN}Done.${NC}"	
-	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] BWA mem read mapping... "	
-	bwa mem -t $cores ${dir}/intermediate_files/Subject_index.fasta $q > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subject_index.bam 2> ${dir}/logs/bwa_mem.log
-	echo -e "${GREEN}Done.${NC}"	
+	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping query ${BLUE}$queryfilename${NC} to ${BLUE}Subjects_index.fasta${NC} files using $mapping"
+	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Building bwa index from ${BLUE}Subjects_index.fasta${NC}... "
+	bwa index -b 60000000 ${dir}/intermediate_files/Subjects_index.fasta 2> ${dir}/logs/bwa_index.log
+	success $?
+	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping reads from ${BLUE}$queryfilename${NC} to index... "	
+	bwa mem -t $cores ${dir}/intermediate_files/Subjects_index.fasta $q > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam 2> ${dir}/logs/bwa_mem.log
+	success $?
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: filtering non-hits... "
-	samtools view -b ${dir}/intermediate_files/${queryfilename_noext}_vs_Subject_index.bam | samtools sort -@ 4 -o ${dir}/intermediate_files/${queryfilename_noext}_vs_Subject_index.bam.sorted 2> ${dir}/logs/samtools_view.log
-	echo -e "${GREEN}Done.${NC}"
+	samtools view -b ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam | samtools sort -@ 4 -o ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.sorted 2> ${dir}/logs/samtools_view.log
+	success $?
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: sort... "
-	samtools view -f 4 ${dir}/intermediate_files/${queryfilename_noext}_vs_Subject_index.bam.sorted > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subject_index.bam.uniq 2> ${dir}/logs/samtools_sort.log
-	echo -e "${GREEN}Done.${NC}"
+	samtools view -f 4 ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.sorted > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.uniq 2> ${dir}/logs/samtools_sort.log
+	success $?
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: exporting fasta file for non-hits... "
-	samtools fasta ${dir}/intermediate_files/${queryfilename_noext}_vs_Subject_index.bam.uniq > ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta 2> ${dir}/logs/samtools_fasta.log
-	echo -e "${GREEN}Done.${NC}"
+	samtools fasta ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.uniq > ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta 2> ${dir}/logs/samtools_fasta.log
+	success $?
 elif [[ $mapping == "blastn" ]]; then
-	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping query ${BLUE}$queryfilename_noext${NC} to ${BLUE}subject${NC} files using $mapping... "
-	python -u xenoseq_bin/seek_uniq_seq.py -q $q -s ${dir}/intermediate_files/Subject_index.fasta -o ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -m > ${dir}/logs/blastn.log
+	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping query ${BLUE}$queryfilename${NC} to ${BLUE}Subjects_index.fasta${NC} files using $mapping... "
+	python -u xenoseq_bin/seek_uniq_seq.py -q $q -s ${dir}/intermediate_files/Subjects_index.fasta -o ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -m > ${dir}/logs/blastn.log
 	echo -e "${GREEN}Done.${NC}"
 else
 	echo -e "[xenoseq_main   $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: mapping tool not recognised! (exit 1)${NC}"
@@ -137,16 +149,20 @@ else
 fi
 
 if [[ $assembler == "megahit" ]]; then
-	rm -rf ${dir}/${queryfilename}_contigs
+	rm -rf ${dir}/${queryfilename_noext}_contigs
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using MEGAHIT... "
 	megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
-	echo -e "${GREEN}Done.${NC}"
+	success $?
+	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
 	mv ${dir}/${queryfilename_noext}_contigs/final.contigs.fa ${dir}/unique_contigs.fasta
+	success $?
 elif [[ $assembler == "spades" ]]; then
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades... "
 	spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log 
-	echo -e "${GREEN}Done.${NC}"
+	success $?
+	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
 	mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs.fasta
+	success $?
 else
 	echo -e "[xenoseq_main  $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: assembler not recognised! (exit 1)${NC}"
 	exit 1;

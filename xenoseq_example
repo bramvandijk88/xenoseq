@@ -13,19 +13,6 @@ BLUE='\033[0;36m'	# FILES
 PRP='\033[0;35m'	# COSMETIC
 NC='\033[0m' # No Color
 
-echo -e "\n${ORANGE} __    __                                                             ";
-echo "/  |  /  |                                                            ";
-echo "AT |  GC |  ______   _______    ______    _______   ______    ______  ";
-echo "GG  \/AG/  /      \ /       \  /      \  /       | /      \  /      \ ";
-echo " TA  TT<  /GATACT  |TAAATGG  |/CCGTAA  |/AATAAAS/ /ATTTCT  |/ATGTTA  |";
-echo "  TGAC  \ AA    GA |TG |  GG |AG |  AG |TT      \ TT    CG |GA |  AT |";
-echo " AA /AT  |GATCCCGT/ TA |  AA |CG \__AG | GGAACT  |TACGGGTA/ GT \__AT |";
-echo "AA |  GC |CC       |GA |  GT |GC    GT/ /     GG/ TA       |AG    AT |";
-echo "GG/   TG/  GTAGGCC/ CA/   TT/  TAAATG/  ATGCGCG/   ATGCAAT/  AGGGTTT |";
-echo "                                                                  AA |";
-echo "                                                                  AA |";
-echo -e "                                                                  AA/ ${NC}\n";
-
 # 1) The first for loop preps all the read in the example directory (samples/reads)
 # so that we have merged and quality checked reads in FASTA format:
 
@@ -47,7 +34,7 @@ echo -e "[xenoseq_prep    $(date +%d-%m_%H:%M:%S)] ${GREEN}Preprocessing finishe
 
 echo -e "\n-= Main xenoseq pipeline =- (${cores} threads)"
 # Below is an example command for prepping your paired-end reads. If you already have prepped fasta file, this step isn't necessary. 
-command="./xenoseq -s example_out/reads/Ancestral_prepped.fasta -s example_out/reads/Vertical_prepped.fasta -q example_out/reads/Horizontal_prepped.fasta -c $cores -o example_out/unique_contigs.fasta"
+command="./xenoseq -s example_out/reads/Ancestral_prepped.fasta -s example_out/reads/Vertical_prepped.fasta -q example_out/reads/Horizontal_prepped.fasta -c $cores -o example_out"
 echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${ORANGE}$command${NC}"
 eval $command
 
