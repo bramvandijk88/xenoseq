@@ -20,11 +20,11 @@ echo "                                                                  AA |";
 echo "                                                                  AA |";
 echo -e "                                                                  AA/ ${NC}\n";
 echo -e "----------------------------------------------------------------------"
-echo -e "                          (XENOSEQ v0.5.2)                            "
+echo -e "                          (XENOSEQ v0.5.3)                            "
 echo -e "----------------------------------------------------------------------\n"
 
 print_usage() {
-	echo -e "XENOSEQ v0.5.2\n"
+	echo -e "XENOSEQ v0.5.3\n"
 	echo -e "contact: vandijk@evolbio.mpg.de\n"
 	echo -e "Usage:\n\t xenoseq -q query_file -s subject_file_1 -s subject_file_2 -o output_fasta (-c NUM_CORES, -megahit, -blastn)"
 	echo -e "Input options:
