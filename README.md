@@ -19,7 +19,7 @@ To use xenoseq, a conda environment is provided.
 (see docs.conda.io/projects/conda/en/latest/) 
 To install this conda environment, simply use: 
 
-```bash
+```
 conda env create -f conda_env.yml
 conda activate xenoseq
 ```
@@ -33,13 +33,13 @@ If you want to use the pipeline scripts from anywhere on
 your machine, you have to add the xenoseq directory (where
 you cloned the repository) to your global PATH variable: 
 
-```bash
+```
 export PATH='$PATH:<XENOSEQ_DIR>'
 ```
 
 e.g. if you cloned / downloaded xenoseq into your home dir:
 
-```bash
+```
 export PATH='$PATH:~/xenoseq'
 ```
 
@@ -47,7 +47,7 @@ If you don't want to do this each time you login to a new
 terminal, add the export PATH code to you ~/.bashrc 
 (or ~/.profile) file:
 
-```bash
+```
 echo export PATH='$PATH:~/<XENOSEQ_DIR>' >> ~./bashrc
 ```
 
