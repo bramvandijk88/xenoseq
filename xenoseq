@@ -160,7 +160,7 @@ elif [[ $assembler == "spades" ]]; then
 	spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log 
 	fullspades = $?	
 	success fullspades
-	if [ fullspades -gt 0 ]; 
+	if [ fullspades -gt 0 ]; then 
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Spades failed using automatic kmer selection... :("
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Try assembling ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} with different kmers (spades option -k 21,33,55,77,99) or megahit"	
 	else
