@@ -81,7 +81,7 @@ done
 # Function to check if previous command was succesful
 function success() { 
 	if [ $1 -eq 0 ]; then
-  		echo -e "${GREEN}Done.${NC} (completed at $(date +%d-%m_%H:%M:%S))"
+  		echo -e "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
 	else
   		echo -e "${RED}Error in previous step. See relevant log files in ${dir}/logs (exit 0).${NC}" >&2
   		exit 0;
