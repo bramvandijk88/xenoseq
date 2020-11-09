@@ -1,5 +1,7 @@
 #!/bin/bash
 
+
+
 ORANGE='\033[0;33m' 	# WARNINGS
 RED='\033[0;31m'	# ERRORS
 GREEN='\033[0;32m'	# COMPLETION
@@ -10,6 +12,7 @@ NC='\033[0m' # No Color
 
 #version="0.5.3" # Added some fall-back and warnings with spades crashing at low coverage
 version="0.5.4" # When re-running to the same output directory, it reuses old pre-build files if it can. 
+version="0.5.5" # Better error messages.
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
@@ -83,8 +86,8 @@ function success() {
 	if [ $1 -eq 0 ]; then
   		echo -e "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
 	else
-  		echo -e "${RED}Error in previous step. See relevant log files in ${dir}/logs (exit 0).${NC}" >&2
-  		exit 0;
+  		echo -e "${RED}Error in xenoseq ($2). See relevant log files in ${dir}/logs (exit 1).${NC}" >&2
+  		exit 1;
 	fi
 }
 
@@ -118,7 +121,7 @@ mkdir -p $dir/intermediate_files
 if [[ ! -f "${dir}/intermediate_files/Queries.fasta" ]]; then
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}query files${NC} to ${dir}/intermediate_files/${BLUE}Queries.fasta${NC}... "
 	cat ${queries[*]} > ${dir}/intermediate_files/Queries.fasta
-	success $?	
+	success $? "concat query fastas"
 else	
 	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously build file: ${dir}/intermediate_files/${BLUE}Queries.fasta${NC}"	
 fi
@@ -127,7 +130,7 @@ if [[ ! -f "${dir}/intermediate_files/Subjects_index.fasta" ]]; then
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}subject files${NC} to ${dir}/intermediate_files/${BLUE}Subjects.fasta${NC}... "
 	cat ${subjects[*]} > ${dir}/intermediate_files/Subjects.fasta
 	grep -v "^>" ${dir}/intermediate_files/Subjects.fasta | awk 'BEGIN{num=1} { if ((NR % 5000000) == 1) {printf(">Subject_Chunk_"num"\n");num++} print; }' > ${dir}/intermediate_files/Subjects_index.fasta
-	success $?
+	success $? "concat subject fastas"
 else	
 	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously build file: ${dir}/intermediate_files/${BLUE}Subjects_index.fasta${NC}"	
 fi
@@ -143,7 +146,7 @@ if [[ $mapping == "bwa mem" ]]; then
 	if [[ ! -f "${dir}/intermediate_files/Subjects_index.fasta.amb" ]]; then
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Building bwa index from ${BLUE}Subjects_index.fasta${NC}... "
 		bwa index -b 60000000 ${dir}/intermediate_files/Subjects_index.fasta 2> ${dir}/logs/bwa_index.log
-		success $?
+		success $? "bwa index"
 	else
 		echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously build BWA index in ${dir}/intermediate_files/"	
 	fi	
@@ -153,16 +156,16 @@ if [[ $mapping == "bwa mem" ]]; then
 	if [[ ! -f "${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta" ]]; then		
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping reads from ${BLUE}$queryfilename${NC} to index... "	
 		bwa mem -t $cores ${dir}/intermediate_files/Subjects_index.fasta $q > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam 2> ${dir}/logs/bwa_mem.log
-		success $?
+		success $? "bwa mem"
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: filtering non-hits... "
 		samtools view -b ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam | samtools sort -@ 4 -o ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.sorted 2> ${dir}/logs/samtools_view.log
-		success $?
+		success $? "samtools view"
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: sort... "
 		samtools view -f 4 ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.sorted > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.uniq 2> ${dir}/logs/samtools_sort.log
-		success $?
+		success $? "samtools filter"
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: exporting fasta file for non-hits... "
 		samtools fasta ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.uniq > ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta 2> ${dir}/logs/samtools_fasta.log
-		success $?
+		success $? "samtools fasta"
 	else
 		echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously identified unique reads in ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta"	
 	fi
@@ -181,7 +184,7 @@ if [[ $assembler == "megahit" ]]; then
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using MEGAHIT... "
 	echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs"
 	megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
-	success $?
+	success $? "megahit"
 	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
 	mv ${dir}/${queryfilename_noext}_contigs/final.contigs.fa ${dir}/unique_contigs.fasta
 	success $?
@@ -191,11 +194,11 @@ elif [[ $assembler == "spades" ]]; then
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades... "
 		spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log 
 		fullspades=$?	
-		success $fullspades
+		success $fullspades "spades.py, high kmer"
 		if [ $fullspades -gt 0 ]; then 
 			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Spades failed using automatic kmer selection... :("
 			spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -k 21,33,55,77,99 -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log
-			halfspades=$?	
+			halfspades=$? "spades.py, low kmer"
 			success $halfspades
 			if [ $halfspades -gt 0 ]; then 
 				echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Spades failed twice... Maybe you can try assembling ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} with MEGAHIT"	

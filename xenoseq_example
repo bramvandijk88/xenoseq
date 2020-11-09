@@ -20,7 +20,7 @@ NC='\033[0m' # No Color
 echo -e "\n-= Preprocessing =- (${cores} threads)"  # Preparing (trim, QC, and merge paired reads) for 3 example files
 for file in Ancestral Vertical Horizontal; do    
     command="./xenoseq_prep -f1 samples/reads/${file}_reads1.fq -f2 samples/reads/${file}_reads2.fq -c $cores -o example_out/reads/${file}.fasta"
-    echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
+    echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
     eval $command
 done;
 echo -e "[xenoseq_prep    $(date +%d-%m_%H:%M:%S)] ${GREEN}Preprocessing finished succesfully for all samples.${NC}"
@@ -36,7 +36,7 @@ echo -e "[xenoseq_prep    $(date +%d-%m_%H:%M:%S)] ${GREEN}Preprocessing finishe
 echo -e "\n-= Main xenoseq pipeline =- (${cores} threads)"
 # Below is an example command for prepping your paired-end reads. If you already have prepped fasta file, this step isn't necessary. 
 command="./xenoseq -s example_out/reads/Ancestral_prepped.fasta -s example_out/reads/Vertical_prepped.fasta -q example_out/reads/Horizontal_prepped.fasta -c $cores -o example_out"
-echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
+echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
 eval $command
 
 # 3) Post-analysis stuff
@@ -45,7 +45,7 @@ eval $command
 
 echo -e "\n-= Post analysis stuff (WIP) =- (${cores} threads)"
 command="./xenoseq_compare example_out/unique_contigs.fasta samples/known_unique_sequences.fasta > example_out/summary_statistics.txt"
-echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
+echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
 eval $command
 echo -e "[xenoseq_comp     $(date +%d-%m_%H:%M:%S)] Completed comparison of ${BLUE}assembled contigs${NC} with ${BLUE}known unique sequences${NC} in the example dataset, see example_out/summary_statistics.txt"
 
