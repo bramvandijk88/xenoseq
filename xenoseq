@@ -216,7 +216,7 @@ elif [[ $assembler == "spades" ]]; then
 		fi;		
 		if [[ $fullspades == 0 || $halfspades == 0 ]]; then
 			echo -e "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
-			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
+			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
 			mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs.fasta
 			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${GREEN}Complete! Find your unique contigs in ${o}${NC}"
 		else
