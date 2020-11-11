@@ -195,13 +195,22 @@ elif [[ $assembler == "spades" ]]; then
 		spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log 
 		fullspades=$?	
 		if [ $fullspades -gt 0 ]; then 
-			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed using automatic kmer selection... :( ${NC}"
+			echo -en "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed using automatic kmer selection... :( ${NC}"
+			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades with lower smaller kmers... "
 			spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -k 21,33,55,77,99 -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log
-			halfspades=$? "spades.py, low kmer"
+			halfspades=$?
 			if [ $halfspades -gt 0 ]; then 
-				echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed again with k-mers 21,33,55,77,99... Maybe you can try assembling ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} with MEGAHIT. (exit 1)"	
-				exit 1
-			fi			
+				echo -en "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed again with k-mers 21,33,55,77,99... trying MEGAHIT..."
+				megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
+				megahit_return=$?
+				if [ $megahit_return -gt 0]; then					
+					echo -en "\n[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Megahit failed. This is likely because there are no unique reads in your query at all. See ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} for more info. (exit 1)"
+					exit 1;
+				else
+					echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving megahit contigs to output directory... "
+					mv ${dir}/${queryfilename_noext}_contigs/final.contigs.fa ${dir}/unique_contigs.fasta
+				fi;
+			fi
 		fi;		
 		if [[ $fullspades == 0 || $halfspades == 0 ]]; then
 			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
