@@ -194,14 +194,13 @@ elif [[ $assembler == "spades" ]]; then
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades... "
 		spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log 
 		fullspades=$?	
-		success $fullspades "spades.py, high kmer"
 		if [ $fullspades -gt 0 ]; then 
-			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Spades failed using automatic kmer selection... :("
+			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed using automatic kmer selection... :( ${NC}"
 			spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -k 21,33,55,77,99 -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log
 			halfspades=$? "spades.py, low kmer"
-			success $halfspades
 			if [ $halfspades -gt 0 ]; then 
-				echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Spades failed twice... Maybe you can try assembling ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} with MEGAHIT"	
+				echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed again with k-mers 21,33,55,77,99... Maybe you can try assembling ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} with MEGAHIT. (exit 1)"	
+				exit 1
 			fi			
 		fi;		
 		if [[ $fullspades == 0 || $halfspades == 0 ]]; then
