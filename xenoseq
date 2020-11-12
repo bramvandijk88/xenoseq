@@ -223,8 +223,6 @@ elif [[ $assembler == "spades" ]]; then
 					echo -e "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Even megahit failed.${NC} This is likely because there are almost no unique reads in your query at all. Inspect the unique reads or log files in ${BLUE}${dir}${NC}. (exit 1)"
 					exit 1;
 				else
-					echo -e "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
-					echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving megahit contigs to output directory... "
 					mv ${dir}/${queryfilename_noext}_contigs/final.contigs.fa ${dir}/${queryfilename_noext}_contigs/contigs.fasta
 				fi;
 			fi
