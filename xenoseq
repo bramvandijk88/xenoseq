@@ -182,18 +182,20 @@ else
 	exit 1;
 fi
 
-if [[ $assembler == "megahit" ]]; then
-	rm -rf ${dir}/${queryfilename_noext}_contigs
-	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using MEGAHIT... "
-	echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs"
-	megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
-	success $? "megahit"
-	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
-	mv ${dir}/${queryfilename_noext}_contigs/final.contigs.fa ${dir}/unique_contigs.fasta
-	success $?
-elif [[ $assembler == "spades" ]]; then
-	echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs${NC}"
-	if [[ ! -f "${dir}/unique_contigs.fasta" ]]; then
+
+if [[ ! -f "${dir}/unique_contigs.fasta" ]]; then
+	if [[ $assembler == "megahit" ]]; then
+		rm -rf ${dir}/${queryfilename_noext}_contigs
+		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using MEGAHIT... "
+		echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs"
+		megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
+		success $? "megahit"
+		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
+		mv ${dir}/${queryfilename_noext}_contigs/final.contigs.fa ${dir}/unique_contigs.fasta
+		success $?
+	elif [[ $assembler == "spades" ]]; then
+		echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs${NC}"
+		
 		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades... "
 		fullspades=1
 		if [[ ! -f "${dir}/intermediate_files/fullspades.tried" ]]; then
@@ -230,23 +232,19 @@ elif [[ $assembler == "spades" ]]; then
 		if [[ $fullspades == 0 || $halfspades == 0 || $megahit_return == 0 ]]; then
 			echo -en "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
 			echo -e "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
-			if [[ $fullspades == 0 ]]; then 
-				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_spades_autokmer.fasta
-			elif [[ $halfspades == 0 ]]; then 
-				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_spades_lowkmer.fasta
-			elif [[ $megahit_return == 0 ]]; then 
-				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_megahit.fasta
+			mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs.fasta
 			else
 				echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Not everything went as planned... please see logfiles in ${dir}/logs${NC} (exit 1)"
 				exit 1;
-			fi			
-			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${GREEN}Complete! Find your unique contigs in ${o}${NC}"			
+			fi					
 		fi
-	else		
-		echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously assembled contigs in ${dir}/unique_contigs.fasta"	
+	else
+		echo -e "[xenoseq_main  $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: assembler not recognised! (exit 1)${NC}"
+		exit 1;
 	fi
-else
-	echo -e "[xenoseq_main  $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: assembler not recognised! (exit 1)${NC}"
-	exit 1;
+else		
+	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously assembled contigs in ${dir}/unique_contigs.fasta"	
 fi
+
+echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${GREEN}Complete! Find your unique contigs in ${o}${NC}"			
 
