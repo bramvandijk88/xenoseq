@@ -214,6 +214,7 @@ elif [[ $assembler == "spades" ]]; then
 				echo -en "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed again with k-mers 21,33,55,77,99... :((${NC} trying MEGAHIT... "
 				megahit_return=1
 				if [[ ! -f "${dir}/intermediate_files/megahit.tried" ]]; then
+					rm -rf ${dir}/${queryfilename_noext}_contigs
 					megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
 					megahit_return=$?
 				fi
