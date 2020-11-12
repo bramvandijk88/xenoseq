@@ -230,11 +230,11 @@ elif [[ $assembler == "spades" ]]; then
 		if [[ $fullspades == 0 || $halfspades == 0 || $megahit_return == 0 ]]; then
 			echo -e "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
 			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
-			if [[ $fullspades == 0 ]; then 
+			if [[ $fullspades == 0 ]]; then 
 				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_spades_autokmer.fasta
-			elif [[ $halfspades == 0 ]; then 
+			elif [[ $halfspades == 0 ]]; then 
 				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_spades_lowkmer.fasta
-			elif [[ $megahit_return == 0 ]; then 
+			elif [[ $megahit_return == 0 ]]; then 
 				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_megahit.fasta
 			else
 				echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Not everything went as planned... please see logfiles in ${dir}/logs${NC} (exit 1)"
