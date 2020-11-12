@@ -230,10 +230,17 @@ elif [[ $assembler == "spades" ]]; then
 		if [[ $fullspades == 0 || $halfspades == 0 || $megahit_return == 0 ]]; then
 			echo -e "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
 			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
-			mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs.fasta
-			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${GREEN}Complete! Find your unique contigs in ${o}${NC}"
-		else
-			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Not everything went as planned... please see logfiles in ${dir}/logs${NC}"
+			if [[ $fullspades == 0 ]; then 
+				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_spades_autokmer.fasta
+			elif [[ $halfspades == 0 ]; then 
+				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_spades_lowkmer.fasta
+			elif [[ $megahit_return == 0 ]; then 
+				mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs_megahit.fasta
+			else
+				echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Not everything went as planned... please see logfiles in ${dir}/logs${NC} (exit 1)"
+				exit 1;
+			fi			
+			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${GREEN}Complete! Find your unique contigs in ${o}${NC}"			
 		fi
 	else		
 		echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously assembled contigs in ${dir}/unique_contigs.fasta"	
