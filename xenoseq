@@ -10,10 +10,11 @@ GREY='\033[0;90m'	# CMD message
 PRP='\033[0;35m'	# COSMETIC
 NC='\033[0m' # No Color
 
-#version="0.5.3" # Added some fall-back and warnings with spades crashing at low coverage
+version="0.5.3" # Added some fall-back and warnings with spades crashing at low coverage
 version="0.5.4" # When re-running to the same output directory, it reuses old pre-build files if it can. 
 version="0.5.5" # Better error messages.
 version="0.5.6" # Fixed assembly fall-backs. 
+version="0.5.7" # Typo removed
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
@@ -197,14 +198,14 @@ elif [[ $assembler == "spades" ]]; then
 		fullspades=$?	
 		if [ $fullspades -gt 0 ]; then 
 			echo -e "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed using automatic kmer selection... :( ${NC}"
-			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades with lower smaller kmers... "
+			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades with smaller kmers... "
 			spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -k 21,33,55,77,99 -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log
 			halfspades=$?
 			if [ $halfspades -gt 0 ]; then 
-				echo -en "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed again with k-mers 21,33,55,77,99...${NC} trying MEGAHIT... "
+				echo -en "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed again with k-mers 21,33,55,77,99... :((${NC} trying MEGAHIT... "
 				megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
 				megahit_return=$?
-				if [ $megahit_return -gt 0]; then					
+				if [ $megahit_return -gt 0 ]; then					
 					echo -e "\n[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${RED}Even megahit failed.${NC} This is likely because there are almost no unique reads in your query at all. See ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} for more info. (exit 1)"
 					exit 1;
 				else
