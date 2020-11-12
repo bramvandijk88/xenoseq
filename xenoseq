@@ -233,11 +233,10 @@ if [[ ! -f "${dir}/unique_contigs.fasta" ]]; then
 			echo -en "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
 			echo -e "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
 			mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs.fasta
-			else
-				echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Not everything went as planned... please see logfiles in ${dir}/logs${NC} (exit 1)"
-				exit 1;
-			fi					
-		fi
+		else
+			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Not everything went as planned... please see logfiles in ${dir}/logs${NC} (exit 1)"
+			exit 1;
+		fi					
 	else
 		echo -e "[xenoseq_main  $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: assembler not recognised! (exit 1)${NC}"
 		exit 1;
