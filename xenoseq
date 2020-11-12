@@ -206,7 +206,7 @@ elif [[ $assembler == "spades" ]]; then
 				megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
 				megahit_return=$?
 				if [ $megahit_return -gt 0 ]; then					
-					echo -e "\n[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${RED}Even megahit failed.${NC} This is likely because there are almost no unique reads in your query at all. See ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} for more info. (exit 1)"
+					echo -e "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Even megahit failed.${NC} This is likely because there are almost no unique reads in your query at all. See ${BLUE}${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta${NC} for more info. (exit 1)"
 					exit 1;
 				else
 					echo -e "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
