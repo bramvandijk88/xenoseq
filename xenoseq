@@ -10,12 +10,7 @@ GREY='\033[0;90m'	# CMD message
 PRP='\033[0;35m'	# COSMETIC
 NC='\033[0m' # No Color
 
-version="0.5.3" # Added some fall-back and warnings with spades crashing at low coverage
-version="0.5.4" # When re-running to the same output directory, it reuses old pre-build files if it can. 
-version="0.5.5" # Better error messages.
-version="0.5.6" # Fixed assembly fall-backs. 
-version="0.5.7" # Typo removed
-version="0.5.8" # Extra checkpoints for assembly fall-backs
+version="0.6.0" 	# Stable release of previous changes. 
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
