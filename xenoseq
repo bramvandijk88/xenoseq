@@ -1,16 +1,20 @@
 #!/bin/bash
+#
+#
+########
+cores=4
 
-
+source xenoseq_bin/functions.sh;
 
 ORANGE='\033[0;33m' 	# WARNINGS
 RED='\033[0;31m'	# ERRORS
 GREEN='\033[0;32m'	# COMPLETION
 BLUE='\033[0;36m'	# FILES
-GREY='\033[0;90m'	# CMD message
 PRP='\033[0;35m'	# COSMETIC
+GREY='\033[0;90m'	# CMD message
 NC='\033[0m' # No Color
 
-version="0.6.0" 	# Stable release of previous changes. 
+version="1.0.0"         # Stable release of previous changes.
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
@@ -29,49 +33,42 @@ echo -e "                          (XENOSEQ v${version})                        
 echo -e "----------------------------------------------------------------------\n"
 
 print_usage() {
-	echo -e "XENOSEQ v${version}\n"
-	echo -e "contact: vandijk@evolbio.mpg.de\n"
-	echo -e "Usage:\n\t xenoseq -q query_file -s subject_file_1 -s subject_file_2 -o output_fasta (-c NUM_CORES, -megahit, -blastn)"
-	echo -e "Input options:
-	-q/--query\tFasta file(s) in which to look for unique reads
-	-s/--subject\tFasta file(s) to compare to (reference for uniqueness)
-	-o/--output\tOutput file (fasta)
+	echo -e "xenoseq v${version}\n"
+	echo -e "contact: bramvandijk88@gmail.com\n"
+	echo -e "Usage:\n\t xenoseq -m <meta_data_tsv> -o <output_dir> -c <num_cores> -t"
+	echo -e "Mandatory:
+	-m/--metadata\t\tFile containing the metadata (tsv file with query-reference sets)
 Optional options:
-	-c/--cores\tNumber of threads to use in parallisable parts of the pipeline
-	-megahit\tInstead of spades, use megahit for contig assembly (much faster, but lower quality contigs)
-	-blastn\t\tInstead of bwa mem, compare query and subject with blastn (much slower, slightly more sensitive)"	
+	-p/--path_to_reads\tPath to reads for samples in metadata
+	-r/--read_suffix\tRead suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
+	-t/--trace\t\tAfter detecting xenotypic contigs, trace them across all samples.
+	-c/--cores\t\tNumber of threads to use in parallisable parts of the pipeline
+	-o/--output\t\tOutput directory to put all the data"
 }
 
-if [ "$#" -lt 3 ]; then	
-    print_usage;
-	echo -e "${RED}Not enough arguments given. See usage above. ${NC}"
-	exit 1;
-fi
-
-subjects=()
-queries=()
-cores=4
-mapping='bwa mem'      # 'bwa mem', 'blastn' [bwa mem]
-assembler='spades' 	  # spades, megahit [spades]
+#OPTS
+output="Xenoseq_default"
+path_to_reads="samples/reads"
+read_suffix="_R*.fq"
+trace=false
+metadata=""
 
 while [ $# -gt 0 ]; do
 	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
 		print_usage;
 		exit 1;
-	elif [[ $1 =~ ^(-s|--s|-subject|--subject)$ ]]; then
-		subjects+=("$2")
-	elif [[ $1 =~ ^(-q|--query)$ ]]; then
-		queries+=("$2")
+	elif [[ $1 =~ ^(-m|--metadata)$ ]]; then
+		metadata=("$2")
 	elif [[ $1 =~ ^(-o|--output)$ ]]; then
-		o=("$2")		
+		output=("$2")
+	elif [[ $1 =~ ^(-t|--trace)$ ]]; then
+		trace=true
+	elif [[ $1 =~ ^(-p|--path_to_reads)$ ]]; then
+		path_to_reads=("$2")
+	elif [[ $1 =~ ^(-r|--read_suffix)$ ]]; then
+		read_suffix=("$2")
 	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
 		cores=("$2")
-	elif [[ $1 =~ ^(-p|--prep)$ ]]; then
-		prep=true
-	elif [[ $1 =~ ^(-megahit|--megahit)$ ]]; then
-		assembler='megahit'
-	elif [[ $1 =~ ^(-blastn|--blastn)$ ]]; then
-		mapping='blastn'		
 	elif [[ $1 == *"-"* ]]; then
 		v="${1/-/}"
 		declare $v="$2"
@@ -79,166 +76,141 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-# Function to check if previous command was succesful
-function success() { 
-	if [ $1 -eq 0 ]; then
-  		echo -e "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
-	else
-  		echo -e "${RED}Error in xenoseq ($2). See relevant log files in ${dir}/logs (exit 1).${NC}" >&2
-  		exit 1;
-	fi
-}
 
-## Check if all required variables are set
+############
+###### Parsing meta data ######
+############
+echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 1) PARSING METADATA${NC}"
 
-if [[ ${#queries[@]} == 0 ]]; then
-	echo -e "${RED}ERROR: Zero query files (-q) not given. See help below.${NC}"
-	print_usage;
+if [[ $metadata == "" ]]; then
+	print_usage
+	exit 1
 fi
-if [[ ${#subjects[@]} == 0 ]]; then
-	echo -e "${RED}ERROR: Zero subject files (-s) given. See help below.${NC}"
-	print_usage;
-fi
-if [[ -z "$o" ]]; then
-	echo -e "${ORANGE}Warning: Output directory not given, defaulting to ./xenoseq_output.${NC}"
-	o="xenoseq_output"
-fi
+parse_metadata $metadata
 
-
-
-dir=${o}
-
-if [[ -d $dir ]]; then
-	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Note to user: output dir already exists. Reusing old files for speed for speed. Hoping for the best.${NC}"
-fi
-
-mkdir -p $dir
-mkdir -p $dir/logs
-mkdir -p $dir/intermediate_files
-
-if [[ ! -f "${dir}/intermediate_files/Queries.fasta" ]]; then
-	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}query files${NC} to ${dir}/intermediate_files/${BLUE}Queries.fasta${NC}... "
-	cat ${queries[*]} > ${dir}/intermediate_files/Queries.fasta
-	success $? "concat query fastas"
-else	
-	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously build file: ${dir}/intermediate_files/${BLUE}Queries.fasta${NC}"	
-fi
-
-if [[ ! -f "${dir}/intermediate_files/Subjects_index.fasta" ]]; then
-	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Concatenating ${BLUE}subject files${NC} to ${dir}/intermediate_files/${BLUE}Subjects.fasta${NC}... "
-	cat ${subjects[*]} > ${dir}/intermediate_files/Subjects.fasta
-	grep -v "^>" ${dir}/intermediate_files/Subjects.fasta | awk 'BEGIN{num=1} { if ((NR % 5000000) == 1) {printf(">Subject_Chunk_"num"\n");num++} print; }' > ${dir}/intermediate_files/Subjects_index.fasta
-	success $? "concat subject fastas"
-else	
-	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously build file: ${dir}/intermediate_files/${BLUE}Subjects_index.fasta${NC}"	
-fi
-
-q=${dir}/intermediate_files/Queries.fasta
-queryfilename="${q##*/}"
-queryfilename_noext="${queryfilename%.*}"
-
-if [[ $mapping == "bwa mem" ]]; then	
-	## 1) Building bwa index of concatenated subject reads 
-	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping query ${BLUE}$queryfilename${NC} to ${BLUE}Subjects_index.fasta${NC} files using $mapping"
-	echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}bwa index -b 60000000 ${dir}/intermediate_files/Subjects_index.fasta${NC}"
-	if [[ ! -f "${dir}/intermediate_files/Subjects_index.fasta.amb" ]]; then
-		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Building bwa index from ${BLUE}Subjects_index.fasta${NC}... "
-		bwa index -b 60000000 ${dir}/intermediate_files/Subjects_index.fasta 2> ${dir}/logs/bwa_index.log
-		success $? "bwa index"
-	else
-		echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously build BWA index in ${dir}/intermediate_files/"	
-	fi	
-	## 2) Mapping reads of query to subject
-	
-	echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}bwa mem -t $cores ${dir}/intermediate_files/Subjects_index.fasta $q > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam${NC}"
-	if [[ ! -f "${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta" ]]; then		
-		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping reads from ${BLUE}$queryfilename${NC} to index... "	
-		bwa mem -t $cores ${dir}/intermediate_files/Subjects_index.fasta $q > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam 2> ${dir}/logs/bwa_mem.log
-		success $? "bwa mem"
-		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: filtering non-hits... "
-		samtools view -b ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam | samtools sort -@ 4 -o ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.sorted 2> ${dir}/logs/samtools_view.log
-		success $? "samtools view"
-		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: sort... "
-		samtools view -f 4 ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.sorted > ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.uniq 2> ${dir}/logs/samtools_sort.log
-		success $? "samtools filter"
-		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Samtools: exporting fasta file for non-hits... "
-		samtools fasta ${dir}/intermediate_files/${queryfilename_noext}_vs_Subjects_index.bam.uniq > ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta 2> ${dir}/logs/samtools_fasta.log
-		success $? "samtools fasta"
-	else
-		echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously identified unique reads in ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta"	
-	fi
-elif [[ $mapping == "blastn" ]]; then
-	echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Mapping query ${BLUE}$queryfilename${NC} to ${BLUE}Subjects_index.fasta${NC} files using $mapping... "
-	echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}python -u xenoseq_bin/seek_uniq_seq.py -q $q -s ${dir}/intermediate_files/Subjects_index.fasta -o ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -m"
-	python -u xenoseq_bin/seek_uniq_seq.py -q $q -s ${dir}/intermediate_files/Subjects_index.fasta -o ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -m > ${dir}/logs/blastn.log
-	echo -e "${GREEN}Done.${NC}"
-else
-	echo -e "[xenoseq_main   $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: mapping tool not recognised! (exit 1)${NC}"
-	exit 1;
-fi
-
-
-if [[ ! -f "${dir}/unique_contigs.fasta" ]]; then
-	if [[ $assembler == "megahit" ]]; then
-		rm -rf ${dir}/${queryfilename_noext}_contigs
-		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using MEGAHIT... "
-		echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs"
-		megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
-		success $? "megahit"
-		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
-		mv ${dir}/${queryfilename_noext}_contigs/final.contigs.fa ${dir}/unique_contigs.fasta
-		success $?
-	elif [[ $assembler == "spades" ]]; then
-		echo -e "[xenoseq_cmd     $(date +%d-%m_%H:%M:%S)] ${GREY}spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs${NC}"
-		
-		echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades... "
-		fullspades=1
-		if [[ ! -f "${dir}/intermediate_files/fullspades.tried" ]]; then
-			spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log 			
-			fullspades=$?
+echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if query-reads exist with suffix \"$read_suffix\"..."
+for (( i=0; i<${#query_samples[@]}; i++ )); do
+	for file in ${path_to_reads}/${query_samples[$i]}${read_suffix}; do
+		if [ ! -f $file ]; then
+			echo "Reads for \"${query_samples[$i]}\" do not exist. Are you using the correct read suffix?"
+			exit 1
 		fi
-		if [ $fullspades -gt 0 ]; then 			
-			echo -e "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed using automatic kmer selection... :( ${NC}"
-			touch ${dir}/intermediate_files/fullspades.tried			
-			echo -en "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Assembling using Spades with smaller kmers... "
-			halfspades=1
-			if [[ ! -f "${dir}/intermediate_files/halfspades.tried" ]]; then			
-				spades.py -s ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta --only-assembler -k 21,33,55,77,99 -o ${dir}/${queryfilename_noext}_contigs &> ${dir}/logs/spades.log
-				halfspades=$?
+	done
+done
+echo -e "\t${GREEN}[OK]${NC}"
+echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if subject-reads exist with suffix \"$read_suffix\""
+for (( i=0; i<${#reference_samples[@]}; i++ )); do
+	for file in ${path_to_reads}/${reference_samples[$i]}${read_suffix}; do
+		if [ ! -f $file ]; then
+			echo "Reads for \"${reference_samples[$i]}\" do not exist. Are you using the correct read suffix?"
+			exit 1
+		fi
+	done
+done
+echo -e "\t${GREEN}[OK]${NC}"
+
+# Make the global output directory
+mkdir -p ${output}/
+mkdir -p ${output}/logs
+
+echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 2) PREPARING REFERENCES${NC}"
+
+############
+###### Prepare reference samples ######
+############
+
+for (( i=0; i<${#reference_samples[@]}; i++ )); do
+	echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Preparing reference ${reference_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+
+	r1=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | head -n 1)
+	r2=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | tail -n 1)
+	mkdir -p $output/${reference_samples[$i]}/reads
+	mkdir -p $output/${reference_samples[$i]}/logs
+
+	trim $r1 $r2 $output/${reference_samples[$i]}/reads/merged_reads.fasta
+	assemble_mh $output/${reference_samples[$i]}/reads/merged_reads.fasta 100 $output/${reference_samples[$i]}/assembly
+	bwa_index $output/${reference_samples[$i]}/assembly/final.contigs.fa
+	blastdb $output/${reference_samples[$i]}/assembly/final.contigs.fa
+done
+
+echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 3) MAPPING TO REFERENCE${NC}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+
+############
+###### Mapping to queries and assembling unique reads into contigs (unique_contigs.fasta) ######
+############
+
+for (( i=0; i<${#query_samples[@]}; i++ )); do
+	echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Looking for unique/xenotypic contigs in ${query_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+
+	r1=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | head -n 1)
+	r2=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | tail -n 1)
+	reads=$output/${query_samples[$i]}/reads/merged_reads.fasta
+	trim $r1 $r2 $reads
+	index=$output/${reference_samples[$i]}/assembly/final.contigs.fa
+	mkdir -p $output/${query_samples[$i]}/read_mapping
+	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
+	bwa_map $index $reads $out
+	unmapped_to_fasta $out.sorted.bam ${reference_samples[$i]}
+	assemble_mh $output/${query_samples[$i]}/reads/unique_reads.fasta 300 $output/${query_samples[$i]}/unique_assembly
+	seqkit sort -l -r $output/${query_samples[$i]}/unique_assembly/final.contigs.fa > $output/${query_samples[$i]}/unique_contigs.fasta 2> $output/logs/seqkit.log
+
+	unique_refs=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+	for (( j=0; j<${#unique_refs[@]}; j++ )); do
+		if [ ! $j -eq $i ]; then
+			if [ -s $output/${query_samples[$i]}/unique_contigs.fasta ]; then
+				index=$output/${reference_samples[$j]}/assembly/final.contigs.fa
+				out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$j]}"
+				bwa_map $index $reads $out
+				samtools_coverage $out
+				ref="${reference_samples[$j]}";
+				link_contig $output/${query_samples[$i]}/unique_contigs.fasta $index $output/${query_samples[$i]}/unique_contig_links_to_${reference_samples[$j]}.tbl
 			fi
-			if [ $halfspades -gt 0 ]; then 
-				touch ${dir}/intermediate_files/halfspades.tried
-				echo -en "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Spades failed again with k-mers 21,33,55,77,99... :((${NC} trying MEGAHIT... "
-				megahit_return=1
-				if [[ ! -f "${dir}/intermediate_files/megahit.tried" ]]; then
-					rm -rf ${dir}/${queryfilename_noext}_contigs
-					megahit -r ${dir}/intermediate_files/${queryfilename_noext}_uniq_reads.fasta -o ${dir}/${queryfilename_noext}_contigs 2> ${dir}/logs/megahit.log
-					megahit_return=$?
-				fi
-				if [ $megahit_return -gt 0 ]; then					
-					touch ${dir}/intermediate_files/megahit.tried
-					echo -e "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Even megahit failed.${NC} This is likely because there are almost no unique reads in your query at all. Inspect the unique reads or log files in ${BLUE}${dir}${NC}. (exit 1)"
-					exit 1;
-				else
-					mv ${dir}/${queryfilename_noext}_contigs/final.contigs.fa ${dir}/${queryfilename_noext}_contigs/contigs.fasta
-				fi;
-			fi
-		fi;		
-		if [[ $fullspades == 0 || $halfspades == 0 || $megahit_return == 0 ]]; then
-			echo -en "${GREEN}Done${NC}. (completed at $(date +%d-%m_%H:%M:%S))"
-			echo -e "\n[xenoseq_main    $(date +%d-%m_%H:%M:%S)] Moving contig-file to output directory... "
-			mv ${dir}/${queryfilename_noext}_contigs/contigs.fasta ${dir}/unique_contigs.fasta
-		else
-			echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${RED}Not everything went as planned... please see logfiles in ${dir}/logs${NC} (exit 1)"
-			exit 1;
-		fi					
-	else
-		echo -e "[xenoseq_main  $(date +%d-%m_%H:%M:%S)] ${RED}WARNING: assembler not recognised! (exit 1)${NC}"
-		exit 1;
+		fi
+	done
+	if ls $output/${query_samples[$i]}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
+		cat $output/${query_samples[$i]}/unique_contig_links_to_*.tbl > $output/${query_samples[$i]}/unique_contig_all_links.tbl
+		cat $output/${query_samples[$i]}/unique_contig_all_links.tbl | cut -f1 > $output/${query_samples[$i]}/xenotypic_contigs.txt
+		seqkit grep -f $output/${query_samples[$i]}/xenotypic_contigs.txt $output/${query_samples[$i]}/unique_contigs.fasta -o $output/${query_samples[$i]}/xenotypic_contigs.fasta 2> $output/logs/xenotypic.log
 	fi
-else		
-	echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${ORANGE}Reusing${NC} previously assembled contigs in ${dir}/unique_contigs.fasta"	
+	num_uniq=$(grep -c '>' $output/${query_samples[$i]}/unique_contigs.fasta)
+	num_xenos=$(grep -c '>' $output/${query_samples[$i]}/xenotypic_contigs.fasta)
+	echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${query_samples[$i]}. $num_xenos of these are xenotypic. ${NC}"
+done
+
+############
+###### Tracing across samples ######
+############ 
+
+if [ $trace == "true" ] ; then
+	echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 4) TRACING XENOTYPIC SEQUENCES${NC}"
+
+	for (( i=0; i<${#query_samples[@]}; i++ )); do
+
+		if [ -s $output/${query_samples[$i]}/xenotypic_contigs.fasta ]; then
+			echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing xenotypic contigs from ${query_samples[$i]} across all samples." # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+			bwa_index $output/${query_samples[$i]}/xenotypic_contigs.fasta
+			for (( j=0; j<${#query_samples[@]}; j++ )); do
+				index=$output/${query_samples[$i]}/xenotypic_contigs.fasta
+				if [ ! $j -eq $i ]; then
+						reads="$output/${query_samples[$j]}/reads/merged_reads.fasta"
+						out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_xenotypic_from_${query_samples[$i]}"
+						bwa_map $index $reads $out
+						samtools_coverage $out
+				fi
+			done
+			for (( j=0; j<${#reference_samples[@]}; j++ )); do
+				index=$output/${query_samples[$i]}/xenotypic_contigs.fasta
+				mkdir -p $output/${reference_samples[$j]}/read_mapping
+				if [ -s $output/${query_samples[$i]}/xenotypic_contigs.fasta ]; then
+					reads="$output/${reference_samples[$j]}/reads/merged_reads.fasta"
+					out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_xenotypic_from_${query_samples[$i]}"
+					bwa_map $index $reads $out
+					samtools_coverage $out
+				fi
+			done
+		fi 
+
+	done
 fi
 
-echo -e "[xenoseq_main    $(date +%d-%m_%H:%M:%S)] ${GREEN}Complete! Find your unique contigs here: ${o}/unique_contigs.fasta${NC}"			
-
+echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq finished.${NC}"

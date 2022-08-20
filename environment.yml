@@ -1,0 +1,12 @@
+name: xenoseq
+channels:
+  - bioconda
+  - default
+  - defaults
+dependencies:
+  - seqkit
+  - megahit
+  - fastp
+  - bwa
+  - samtools
+  - blast

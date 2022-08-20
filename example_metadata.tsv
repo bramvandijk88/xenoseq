@@ -1,0 +1,11 @@
+# This is example metadata for running the whole xenoseq pipeline, lines starting with # are ignored
+# Run with xenoseq_all -m sample_metadata.stv
+# SAMPLES (Query, Reference)
+Horizontal1	Ancestral1
+Horizontal2	Ancestral2
+Horizontal3	Ancestral3
+Horizontal4	Ancestral4
+Vertical1	Ancestral1
+Vertical2	Ancestral2
+Vertical3	Ancestral3
+Vertical4	Ancestral4

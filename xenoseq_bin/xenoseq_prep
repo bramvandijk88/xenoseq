@@ -1,0 +1,54 @@
+#!/bin/bash
+
+cores=4
+
+source xenoseq_bin/functions.sh; 		# Simple custom-made functions to manipulate fasta files
+
+ORANGE='\033[0;33m'     # WARNINGS
+RED='\033[0;31m'        # ERRORS
+GREEN='\033[0;32m'      # COMPLETION
+BLUE='\033[0;36m'       # FILES
+GREY='\033[0;90m'       # CMD message
+PRP='\033[0;35m'        # COSMETIC
+NC='\033[0m' # No Color
+
+
+print_usage() {
+	  printf "Usage: ./xenoseq_prep -r1 forward_reads.fq -r2 reverse_reads.fq -o <output_filename> (-c NUM_CORES)\n"
+  }
+
+
+if [ "$#" -lt 2 ]; then
+    print_usage;
+	exit 1;
+fi
+
+while [ $# -gt 0 ]; do
+	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
+		print_usage;
+	elif [[ $1 =~ ^(-r1|--r1|-forward|--forward)$ ]]; then
+		r1=("$2")
+	elif [[ $1 =~ ^(-r2|--r2|-reverse|--reverse)$ ]]; then
+		r2=("$2")
+	elif [[ $1 =~ ^(-o|--o|-output|--output)$ ]]; then
+		output=("$2")
+	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
+		cores=("$2")
+	elif [[ $1 == *"-"* ]]; then	 # Capture any other flag in variable just in case
+		v="${1/-/}"
+		declare $v="$2"
+	fi
+	shift
+done
+
+dir=$(dirname $output)
+mkdir -p $dir
+mkdir -p ${dir}/QCreports
+filename=$(basename -- "$output")
+filename="${filename%.*}"
+
+echo -en "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Using fastp to prepare reads (trim, dedup, and merge)"
+fastp -x -l 75 --cut_front 25 --cut_tail 25 -D --adapter_fasta samples/adapter_sequences.fa	-i $r1 -I $r2 -m --merged_out $output --include_unmerged -h ${dir}/QCreports/${filename}.html -j ${dir}/QCreports/${filename}.json 2> /dev/null
+echo -e "\t${GREEN}Done.${NC}"
+
+echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${GREEN}Preperation complete:${NC} $BLUE$(basename $r1)$NC + $BLUE$(basename $r2)$NC --> ${BLUE}$(dirname $output)/${filename}.fasta${NC}"
