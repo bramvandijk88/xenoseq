@@ -10,3 +10,4 @@ dependencies:
   - bwa
   - samtools
   - blast
+  - conda-forge::ncurses
