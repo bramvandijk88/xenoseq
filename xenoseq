@@ -46,7 +46,7 @@ Optional options:
 	-c/--cores <INT>\t\tNumber of threads to use in parallisable parts of the pipeline
 	-o/--output <STRING>\t\tOutput directory to put all the data
 	-L/--alignment_length\t\tMinimal alignment length to link unique sequences to other reference samples.
-	-P/--alignment_pid\t\t\tMinimal percent identity to link unique sequences to other reference samples."
+	-P/--alignment_pid\t\tMinimal percent identity to link unique sequences to other reference samples."
 }
 
 #OPTS
