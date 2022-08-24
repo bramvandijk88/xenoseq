@@ -39,11 +39,14 @@ print_usage() {
 	echo -e "Mandatory:
 	-m/--metadata\t\tFile containing the metadata (tsv file with query-reference sets)
 Optional options:
-	-p/--path_to_reads\tPath to reads for samples in metadata
-	-r/--read_suffix\tRead suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
-	-t/--trace\t\tAfter detecting xenotypic contigs, trace them across all samples.
-	-c/--cores\t\tNumber of threads to use in parallisable parts of the pipeline
-	-o/--output\t\tOutput directory to put all the data"
+	-p/--path_to_reads <STRING> \tPath to reads for samples in metadata
+	-r/--read_suffix <STRING> \tRead suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
+	-l/--link\t\t\tAfter detecting unique contigs, attempt to link them to other reference samples.
+	-t/--trace\t\t\tAfter detecting xenotypic contigs, trace them across all samples.
+	-c/--cores <INT>\t\tNumber of threads to use in parallisable parts of the pipeline
+	-o/--output <STRING>\t\tOutput directory to put all the data
+	-L/--alignment_length\t\tMinimal alignment length to link unique sequences to other reference samples.
+	-P/--alignment_pid\t\t\tMinimal percent identity to link unique sequences to other reference samples."
 }
 
 #OPTS
@@ -51,7 +54,10 @@ output="Xenoseq_default"
 path_to_reads="samples/reads"
 read_suffix="_R*.fq"
 trace=false
+link=false
 metadata=""
+blength=300
+bpid=99
 
 while [ $# -gt 0 ]; do
 	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
@@ -63,12 +69,18 @@ while [ $# -gt 0 ]; do
 		output=("$2")
 	elif [[ $1 =~ ^(-t|--trace)$ ]]; then
 		trace=true
+	elif [[ $1 =~ ^(-l|--link)$ ]]; then
+		link=true
 	elif [[ $1 =~ ^(-p|--path_to_reads)$ ]]; then
 		path_to_reads=("$2")
 	elif [[ $1 =~ ^(-r|--read_suffix)$ ]]; then
 		read_suffix=("$2")
 	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
 		cores=("$2")
+	elif [[ $1 =~ ^(-L|--alignment_length)$ ]]; then
+		blength=("$2")
+	elif [[ $1 =~ ^(-P|--alignment_pid)$ ]]; then
+		bpid=("$2")
 	elif [[ $1 == *"-"* ]]; then
 		v="${1/-/}"
 		declare $v="$2"
@@ -130,7 +142,7 @@ for (( i=0; i<${#reference_samples[@]}; i++ )); do
 	trim $r1 $r2 $output/${reference_samples[$i]}/reads/merged_reads.fasta
 	assemble_mh $output/${reference_samples[$i]}/reads/merged_reads.fasta 100 $output/${reference_samples[$i]}/assembly
 	bwa_index $output/${reference_samples[$i]}/assembly/final.contigs.fa
-	blastdb $output/${reference_samples[$i]}/assembly/final.contigs.fa
+	blastdb $output/${reference_samples[$i]}/assembly/final.contigs.fa 
 done
 
 echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 3) MAPPING TO REFERENCE${NC}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
@@ -153,24 +165,26 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	unmapped_to_fasta $out.sorted.bam ${reference_samples[$i]}
 	assemble_mh $output/${query_samples[$i]}/reads/unique_reads.fasta 300 $output/${query_samples[$i]}/unique_assembly
 	seqkit sort -l -r $output/${query_samples[$i]}/unique_assembly/final.contigs.fa > $output/${query_samples[$i]}/unique_contigs.fasta 2> $output/logs/seqkit.log
-
-	unique_refs=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-	for (( j=0; j<${#unique_refs[@]}; j++ )); do
-		if [ ! $j -eq $i ]; then
-			if [ -s $output/${query_samples[$i]}/unique_contigs.fasta ]; then
-				index=$output/${reference_samples[$j]}/assembly/final.contigs.fa
-				out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$j]}"
-				bwa_map $index $reads $out
-				samtools_coverage $out
-				ref="${reference_samples[$j]}";
-				link_contig $output/${query_samples[$i]}/unique_contigs.fasta $index $output/${query_samples[$i]}/unique_contig_links_to_${reference_samples[$j]}.tbl
+	
+	if [ $link == "true" ]; then
+		unique_refs=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+		for (( j=0; j<${#unique_refs[@]}; j++ )); do
+			if [ ! $j -eq $i ]; then
+				if [ -s $output/${query_samples[$i]}/unique_contigs.fasta ]; then
+					index=$output/${reference_samples[$j]}/assembly/final.contigs.fa
+					out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$j]}"
+					bwa_map $index $reads $out
+					samtools_coverage $out
+					ref="${reference_samples[$j]}";
+					link_contig $output/${query_samples[$i]}/unique_contigs.fasta $index $output/${query_samples[$i]}/unique_contig_links_to_${reference_samples[$j]}.tbl
+				fi
 			fi
+		done
+		if ls $output/${query_samples[$i]}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
+			cat $output/${query_samples[$i]}/unique_contig_links_to_*.tbl > $output/${query_samples[$i]}/unique_contig_all_links.tbl
+			cat $output/${query_samples[$i]}/unique_contig_all_links.tbl | cut -f1 > $output/${query_samples[$i]}/xenotypic_contigs.txt
+			seqkit grep -f $output/${query_samples[$i]}/xenotypic_contigs.txt $output/${query_samples[$i]}/unique_contigs.fasta -o $output/${query_samples[$i]}/xenotypic_contigs.fasta 2> $output/logs/xenotypic.log
 		fi
-	done
-	if ls $output/${query_samples[$i]}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
-		cat $output/${query_samples[$i]}/unique_contig_links_to_*.tbl > $output/${query_samples[$i]}/unique_contig_all_links.tbl
-		cat $output/${query_samples[$i]}/unique_contig_all_links.tbl | cut -f1 > $output/${query_samples[$i]}/xenotypic_contigs.txt
-		seqkit grep -f $output/${query_samples[$i]}/xenotypic_contigs.txt $output/${query_samples[$i]}/unique_contigs.fasta -o $output/${query_samples[$i]}/xenotypic_contigs.fasta 2> $output/logs/xenotypic.log
 	fi
 	num_uniq=$(grep -c '>' $output/${query_samples[$i]}/unique_contigs.fasta)
 	num_xenos=$(grep -c '>' $output/${query_samples[$i]}/xenotypic_contigs.fasta)

@@ -57,8 +57,10 @@ function link_contig (){
 	if [ -f $3 ]; then 
 		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing ${3}${NC}"
 	else
+		echo $blength
+		echo $bpid
 		blastn -query $1 -db $2 -outfmt '6 qseqid sseqid pident length slen' \
-			| awk '{if($4>200 && $3 > 97)print $1}' | sort | uniq | sort -nr | awk -v r="$ref" '{print $0"\t"r}' >> $3
+			| awk -v blength=$blength -v bpid=$bpid '{if($4>blength && $3 > bpid)print $1}' | sort | uniq | sort -nr | awk -v r="$ref" '{print $0"\t"r}' >> $3
 		success $? "Blast linking"
 	fi
 }
