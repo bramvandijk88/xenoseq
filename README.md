@@ -104,17 +104,20 @@ to the unique contigs and generate coverage statistics.
 
 ## All options
 ```bash
+
 Usage:
-	 xenoseq -m <meta_data_tsv> -o <output_dir> -c <num_cores> -t
+         xenoseq -m <meta_data_tsv> -o <output_dir> -c <num_cores> -l -t
 Mandatory:
-	-m/--metadata		File containing the metadata (tsv file with query-reference sets)
+        -m/--metadata           File containing the metadata (tsv file with query-reference sets)
 Optional options:
-	-p/--path_to_reads	Path to reads for samples in metadata
-	-r/--read_suffix	Read suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
-	-t/--trace		After detecting xenotypic contigs, trace them across all samples.
-	-c/--cores		Number of threads to use in parallisable parts of the pipeline
-	-o/--output		Output directory to put all the data
-	-h/--help		Display this help page
+        -p/--path_to_reads <STRING>     Path to reads for samples in metadata
+        -r/--read_suffix <STRING>       Read suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
+        -l/--link                       After detecting unique contigs, attempt to link them to other reference samples.
+        -t/--trace                      After detecting xenotypic contigs, trace them across all samples.
+        -c/--cores <INT>                Number of threads to use in parallisable parts of the pipeline
+        -o/--output <STRING>            Output directory to put all the data
+        -L/--alignment_length           Minimal alignment length to link unique sequences to other reference samples.
+        -P/--alignment_pid              Minimal percent identity to link unique sequences to other reference samples.
 ```
 
 If you want to modify any of the options (e.g. filtering thresholds, quality trimming),
