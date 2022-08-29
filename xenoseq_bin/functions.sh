@@ -34,7 +34,7 @@ function trim() {
 	if [ -f $out ]; then
 		echo -e "[xenoseq_trim     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing $out.${NC}"
 	else
-		command="./xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $out"
+		command="xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $out"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
 		eval $command
 		success $? "Trimming (fastp)"

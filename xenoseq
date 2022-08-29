@@ -4,7 +4,8 @@
 ########
 cores=4
 
-source xenoseq_bin/functions.sh;
+SCRIPT_PATH=`dirname "$0"`; SCRIPT_PATH=`eval "cd \"$SCRIPT_PATH\" && pwd"`
+source $SCRIPT_PATH/xenoseq_bin/functions.sh;
 
 ORANGE='\033[0;33m' 	# WARNINGS
 RED='\033[0;31m'	# ERRORS
@@ -188,7 +189,12 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	fi
 	num_uniq=$(grep -c '>' $output/${query_samples[$i]}/unique_contigs.fasta)
 	num_xenos=$(grep -c '>' $output/${query_samples[$i]}/xenotypic_contigs.fasta)
-	echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${query_samples[$i]}. $num_xenos of these are xenotypic. ${NC}"
+	if [ $link == "true" ]; then 
+		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${query_samples[$i]}. $num_xenos of these are xenotypic. ${NC}"
+	else 
+		echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${query_samples[$i]}. Skipping xenoseq_link (-l not set) ${NC}"
+	fi
+
 done
 
 ############
