@@ -34,7 +34,7 @@ function trim() {
 	if [ -f $out ]; then
 		echo -e "[xenoseq_trim     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing $out.${NC}"
 	else
-		command="xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $out"
+		command="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $out"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
 		eval $command
 		success $? "Trimming (fastp)"
@@ -57,8 +57,6 @@ function link_contig (){
 	if [ -f $3 ]; then 
 		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing ${3}${NC}"
 	else
-		echo $blength
-		echo $bpid
 		blastn -query $1 -db $2 -outfmt '6 qseqid sseqid pident length slen' \
 			| awk -v blength=$blength -v bpid=$bpid '{if($4>blength && $3 > bpid)print $1}' | sort | uniq | sort -nr | awk -v r="$ref" '{print $0"\t"r}' >> $3
 		success $? "Blast linking"
