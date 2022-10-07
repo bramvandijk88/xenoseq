@@ -20,7 +20,7 @@ which the pipeline will use to detect:
 
 * unique_contigs.fasta; sequences in query not present in the reference
 * xenotypic_contigs.fasta; the subset of unique contigs that can be linked to *another* reference
-* xenotypic_coverage\*.txt; text files describing the coverage of the xenotypic sequences in other samples
+* xenotypic_coverage.txt; text files describing the coverage of the xenotypic sequences in other samples
 
 ## Overview
 Xenoseq wraps read trimming (fastp), assembly (megahit), read mapping (BWA),
