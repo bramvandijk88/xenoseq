@@ -14,13 +14,17 @@
 	                                                                  AA |
  	                                                                  AA/ 
 ```
+
 Xenoseq is a simple bioinformatic pipeline to find sequences that appear to be newly
 introduced into a community. The input are (sets of) query and reference samples,
-which the pipeline will use to detect:
+which the pipeline will use to generate the following output:
 
-* unique_contigs.fasta; sequences in query not present in the reference
-* xenotypic_contigs.fasta; the subset of unique contigs that can be linked to *another* reference
-* xenotypic_coverage.txt; text files describing the coverage of the xenotypic sequences in other samples
+* unique_contigs.fasta; sequences in query not present in ancestral samples
+* unique_coverage.txt; text file to estimate abundance of unique sequences in non-ancestral samples
+* unique_contig_all_links.tbl; table linking contigs to other communities using BLAST
+* xenotypic_contigs.txt; text file with names of all xenotypic contigs in them
+* xenotypic_contigs.fasta; the subset of unique contigs that can be linked to *another* reference using BLAST
+* xenotypic_coverage.txt; text files to estimate the abundance of xenotypic sequences in non-ancestral samples
 
 ## Overview
 Xenoseq wraps read trimming (fastp), assembly (megahit), read mapping (BWA),
