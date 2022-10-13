@@ -3,7 +3,6 @@
 cores=4
 
 SCRIPT_PATH=`dirname "$0"`; SCRIPT_PATH=`eval "cd \"$SCRIPT_PATH\" && pwd"`
-echo $SCRIPT_PATH
 source $SCRIPT_PATH/functions.sh; 		# Simple custom-made functions to manipulate fasta files
 
 ORANGE='\033[0;33m'     # WARNINGS
@@ -50,7 +49,7 @@ filename=$(basename -- "$output")
 filename="${filename%.*}"
 
 echo -en "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Using fastp to prepare reads (trim, dedup, and merge)"
-fastp -x -l 75 --cut_front 25 --cut_tail 25 -D --adapter_fasta $SCRIPT_PATH/adapter_sequences.fa -i $r1 -I $r2 -m --merged_out $output --include_unmerged -h ${dir}/QCreports/${filename}.html -j ${dir}/QCreports/${filename}.json #2> /dev/null
+fastp -x -l 75 --cut_front 25 --cut_tail 25 -D --adapter_fasta $SCRIPT_PATH/adapter_sequences.fa -i $r1 -I $r2 -m --merged_out $output --include_unmerged -h ${dir}/QCreports/${filename}.html -j ${dir}/QCreports/${filename}.json 2> /dev/null
 echo -e "\t${GREEN}Done.${NC}"
 
 echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${GREEN}Preperation complete:${NC} $BLUE$(basename $r1)$NC + $BLUE$(basename $r2)$NC --> ${BLUE}$(dirname $output)/${filename}.fasta${NC}"
