@@ -20,13 +20,15 @@ which the pipeline will use to detect:
 
 * unique_contigs.fasta; sequences in query not present in the reference
 * xenotypic_contigs.fasta; the subset of unique contigs that can be linked to *another* reference
-* xenotypic_coverage\*.txt; text files describing the coverage of the xenotypic sequences in other samples
+* xenotypic_coverage.txt; text files describing the coverage of the xenotypic sequences in other samples
 
 ## Overview
 Xenoseq wraps read trimming (fastp), assembly (megahit), read mapping (BWA),
 read filtering (samtools), and local alignment (blast), to detect putative evidence
 of horizontal transfer between communities. This tool was used in a recent publication
-(<link>) to detect the movement of MGEs and nanobacteria in compost communities.
+(<preprint_available_soon>) to detect the movement of MGEs and nanobacteria in compost communities. (see Figure below for the experimental setup and subroutines in Xenoseq)
+
+![Xenoseq was applied to detect the movement of MGEs in compost](./FIgure_1.png)
 
 ## Install: conda setup (required)
 To use xenoseq, a conda environment file is provided to install the above mentioned
