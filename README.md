@@ -95,12 +95,11 @@ Vertical3	Ancestral3
 Vertical4	Ancestral4
 ```
 
-To run the pipeline on the example data, use:
+To run the pipeline (e.g. on the example data), use one of the following commands:
 ```
 > ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l -t   # Full pipeline
 > ./xenoseq -m example_metadata.tsv -o Xenoseq_example         # Only identify unique sequences
 > ./xenoseq -m example_metadata.tsv -o Xenoseq_example -t      # Identify and trace unique sequences
- 
 ```
 
 This example will use mock reads found in samples/reads and will search for xenotypic contigs in simulated data. Your unique/xenotypic contigs will then be
