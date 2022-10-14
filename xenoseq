@@ -98,6 +98,9 @@ echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 1) PARSING METAD
 if [[ $metadata == "" ]]; then
 	print_usage
 	exit 1
+elif [[ ! -f $metadata ]]; then
+	echo -en "\n[ERROR] Metadata file (${metadata}) does not exist.\n\n"
+	exit 1
 fi
 parse_metadata $metadata
 
