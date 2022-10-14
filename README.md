@@ -41,11 +41,13 @@ dependencies (for information on conda, see docs.conda.io/projects/conda/en/late
 To install the xenoseq environment, simply use:
 
 ```
+git clone https://github.com/bramvandijk88/xenoseq.git
+cd xenoseq
 conda env create -f environment.yml
 conda activate xenoseq
 ```
 
-## Install: add to path (optional)
+## Install: add to path (optional quality-of-life improvement)
 
 To run the pipeline, you either have to provide the full path to
 the xenoseq binary (e.g. /home/user/XENOSEQ_DIR/xenoseq, or
@@ -95,7 +97,10 @@ Vertical4	Ancestral4
 
 To run the pipeline on the example data, use:
 ```
-> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -t
+> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l -t   # Full pipeline
+> ./xenoseq -m example_metadata.tsv -o Xenoseq_example         # Only identify unique sequences
+> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -t      # Identify and trace unique sequences
+ 
 ```
 
 This example will use mock reads found in samples/reads and will search for xenotypic contigs in simulated data. Your unique/xenotypic contigs will then be
