@@ -47,7 +47,8 @@ Optional options:
 	-c/--cores <INT>\t\tNumber of threads to use in parallisable parts of the pipeline
 	-o/--output <STRING>\t\tOutput directory to put all the data
 	-L/--alignment_length\t\tMinimal alignment length to link unique sequences to other reference samples.
-	-P/--alignment_pid\t\tMinimal percent identity to link unique sequences to other reference samples."
+	-P/--alignment_pid\t\tMinimal percent identity to link unique sequences to other reference samples.
+	--l/--force_relink\t\tLink unique sequences to reference samples, even when this step is already performed."
 }
 
 #OPTS
@@ -56,6 +57,7 @@ path_to_reads="samples/reads"
 read_suffix="_R*.fq"
 trace=false
 link=false
+force_relink=false
 metadata=""
 blength=300
 bpid=99
@@ -72,6 +74,8 @@ while [ $# -gt 0 ]; do
 		trace=true
 	elif [[ $1 =~ ^(-l|--link)$ ]]; then
 		link=true
+	elif [[ $1 =~ ^(-f|--force_relink)$ ]]; then
+		force_relink=true
 	elif [[ $1 =~ ^(-p|--path_to_reads)$ ]]; then
 		path_to_reads=("$2")
 	elif [[ $1 =~ ^(-r|--read_suffix)$ ]]; then
@@ -170,7 +174,11 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	assemble_mh $output/${query_samples[$i]}/reads/unique_reads.fasta 300 $output/${query_samples[$i]}/unique_assembly
 	seqkit sort -l -r $output/${query_samples[$i]}/unique_assembly/final.contigs.fa > $output/${query_samples[$i]}/unique_contigs.fasta 2> $output/logs/seqkit.log
 	
-	if [ $link == "true" ]; then
+	if [[ $link = "true" || $force_relink = "true" ]]; then
+		xeno_filename="xenotypic_contigs"
+		if [[ $force_relink = "true" ]]; then 
+			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
+		fi
 		unique_refs=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 		for (( j=0; j<${#unique_refs[@]}; j++ )); do
 			if [ ! $j -eq $i ]; then
@@ -185,16 +193,16 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 			fi
 		done
 		if ls $output/${query_samples[$i]}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
-			cat $output/${query_samples[$i]}/unique_contig_links_to_*.tbl > $output/${query_samples[$i]}/unique_contig_all_links.tbl
+			cat $output/${query_samples[$i]}/unique_contig_links_to_*.tbl > $output/${query_samples[$i]}/unique_contig_all_links_L${blength}_${bpid}.tbl
 			rm -f $output/${query_samples[$i]}/unique_contig_links_to_*.tbl
-			cat $output/${query_samples[$i]}/unique_contig_all_links.tbl | cut -f1 > $output/${query_samples[$i]}/xenotypic_contigs.txt
-			seqkit grep -f $output/${query_samples[$i]}/xenotypic_contigs.txt $output/${query_samples[$i]}/unique_contigs.fasta -o $output/${query_samples[$i]}/xenotypic_contigs.fasta 2> $output/logs/xenotypic.log
+			cat $output/${query_samples[$i]}/unique_contig_all_links_L${blength}_${bpid}.tbl | cut -f1 > $output/${query_samples[$i]}/${xeno_filename}.txt
+			seqkit grep -f $output/${query_samples[$i]}/${xeno_filename}.txt $output/${query_samples[$i]}/unique_contigs.fasta -o $output/${query_samples[$i]}/${xeno_filename}.fasta 2> $output/logs/xenotypic.log
 		fi
 	fi
 	num_uniq=0
 	if [ -f $output/${query_samples[$i]}/unique_contigs.fasta ]; then num_uniq=$(grep -c '>' $output/${query_samples[$i]}/unique_contigs.fasta); fi
 	num_xenos=0
-	if [ -f $output/${query_samples[$i]}/xenotypic_contigs.fasta ]; then num_xenos=$(grep -c '>' $output/${query_samples[$i]}/xenotypic_contigs.fasta); fi
+	if [ -f $output/${query_samples[$i]}/${xeno_filename}.fasta ]; then num_xenos=$(grep -c '>' $output/${query_samples[$i]}/${xeno_filename}.fasta); fi
 	if [ $link == "true" ]; then 
 		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${query_samples[$i]}. $num_xenos of these are xenotypic. ${NC}"
 	else 
