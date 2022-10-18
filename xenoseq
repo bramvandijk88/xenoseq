@@ -61,6 +61,7 @@ force_relink=false
 metadata=""
 blength=300
 bpid=99
+xeno_filename="xenotypic_contigs"
 
 while [ $# -gt 0 ]; do
 	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
@@ -175,7 +176,6 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	seqkit sort -l -r $output/${query_samples[$i]}/unique_assembly/final.contigs.fa > $output/${query_samples[$i]}/unique_contigs.fasta 2> $output/logs/seqkit.log
 	
 	if [[ $link = "true" || $force_relink = "true" ]]; then
-		xeno_filename="xenotypic_contigs"
 		if [[ $force_relink = "true" ]]; then 
 			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
 		fi
@@ -193,9 +193,9 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 			fi
 		done
 		if ls $output/${query_samples[$i]}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
-			cat $output/${query_samples[$i]}/unique_contig_links_to_*.tbl > $output/${query_samples[$i]}/unique_contig_all_links_L${blength}_${bpid}.tbl
+			cat $output/${query_samples[$i]}/unique_contig_links_to_*.tbl > $output/${query_samples[$i]}/unique_contig_all_links_L${blength}_P${bpid}.tbl
 			rm -f $output/${query_samples[$i]}/unique_contig_links_to_*.tbl
-			cat $output/${query_samples[$i]}/unique_contig_all_links_L${blength}_${bpid}.tbl | cut -f1 > $output/${query_samples[$i]}/${xeno_filename}.txt
+			cat $output/${query_samples[$i]}/unique_contig_all_links_L${blength}_P${bpid}.tbl | cut -f1 > $output/${query_samples[$i]}/${xeno_filename}.txt
 			seqkit grep -f $output/${query_samples[$i]}/${xeno_filename}.txt $output/${query_samples[$i]}/unique_contigs.fasta -o $output/${query_samples[$i]}/${xeno_filename}.fasta 2> $output/logs/xenotypic.log
 		fi
 	fi
@@ -252,36 +252,36 @@ if [ $trace == "true" ] ; then
 		sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${query_samples[$i]}/unique_coverage.txt
 		fi 
 
-		if [ -s $output/${query_samples[$i]}/xenotypic_contigs.fasta ]; then
+		if [ -s $output/${query_samples[$i]}/${xeno_filename}.fasta ]; then
 			echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing xenotypic contigs from ${query_samples[$i]} across all samples." 
-			bwa_index $output/${query_samples[$i]}/xenotypic_contigs.fasta
+			bwa_index $output/${query_samples[$i]}/${xeno_filename}.fasta
 			for (( j=0; j<${#query_samples[@]}; j++ )); do
-				index=$output/${query_samples[$i]}/xenotypic_contigs.fasta
+				index=$output/${query_samples[$i]}/${xeno_filename}.fasta
 				reads="$output/${query_samples[$j]}/reads/merged_reads.fasta"
-				out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_xenotypic_from_${query_samples[$i]}"
+				out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_${xeno_filename}_from_${query_samples[$i]}"
 				bwa_map $index $reads $out
 				if [ ! -f ${out}_coverage.txt ]; then
 					samtools_coverage $out
 					sed -i "s/$/\t${query_samples[$j]}/" ${out}_coverage.txt
-					tail -n+2 ${out}_coverage.txt >> $output/${query_samples[$i]}/xenotypic_coverage.txt
+					tail -n+2 ${out}_coverage.txt >> $output/${query_samples[$i]}/${xeno_filename}_coverage.txt
 				fi
 			done
 			for (( j=0; j<${#reference_samples[@]}; j++ )); do
-				index=$output/${query_samples[$i]}/xenotypic_contigs.fasta
+				index=$output/${query_samples[$i]}/${xeno_filename}.fasta
 				mkdir -p $output/${reference_samples[$j]}/read_mapping
-				if [ -s $output/${query_samples[$i]}/xenotypic_contigs.fasta ]; then
+				if [ -s $output/${query_samples[$i]}/${xeno_filename}.fasta ]; then
 					reads="$output/${reference_samples[$j]}/reads/merged_reads.fasta"
-					out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_xenotypic_from_${query_samples[$i]}"
+					out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_${xeno_filename}_from_${query_samples[$i]}"
 					bwa_map $index $reads $out
 					if [ ! -f ${out}_coverage.txt ]; then
 						samtools_coverage $out
 						sed -i "s/$/\t${reference_samples[$j]}/" ${out}_coverage.txt
-						tail -n+2 ${out}_coverage.txt >> $output/${query_samples[$i]}/xenotypic_coverage.txt
+						tail -n+2 ${out}_coverage.txt >> $output/${query_samples[$i]}/${xeno_filename}_coverage.txt
 					fi
 				fi
 			done
 		rm -rf $output/${query_samples[$i]}/xenotypic_contigs.fasta.*
-		sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${query_samples[$i]}/xenotypic_coverage.txt
+		sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${query_samples[$i]}/${xeno_filename}_coverage.txt
 		fi 
 	done
 fi
