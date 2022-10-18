@@ -21,7 +21,7 @@ which the pipeline will use to generate the following output:
 
 * unique_contigs.fasta; sequences in query not present in ancestral samples
 * unique_coverage.txt; text file to estimate abundance of unique sequences in non-ancestral samples
-* unique_contig_all_links.tbl; table linking contigs to other communities using BLAST
+* unique_contig_all_links_L<L>_P<P>.tbl; table linking contigs to other communities using BLAST, with the used L and P options in the filename
 * xenotypic_contigs.txt; text file with names of all xenotypic contigs in them
 * xenotypic_contigs.fasta; the subset of unique contigs that can be linked to *another* reference using BLAST
 * xenotypic_coverage.txt; text files to estimate the abundance of xenotypic sequences in non-ancestral samples
@@ -97,10 +97,10 @@ Vertical4	Ancestral4
 
 To run the pipeline (e.g. on the example data), use one of the following commands:
 ```
-> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l -t   # Full pipeline
-> ./xenoseq -m example_metadata.tsv -o Xenoseq_example         # Only identify unique sequences
-> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -t      # Identify and trace unique sequences
-> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l      # Identify and trace unique sequences
+> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l -t            # Full pipeline
+> ./xenoseq -m example_metadata.tsv -o Xenoseq_example                  # Only identify unique sequences
+> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -t      		# Identify and trace unique sequences
+> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l -f -P 100     # Force a relinking of unique-xenotypic with stricter pid
 ```
 
 This example will use mock reads found in samples/reads and will search for xenotypic contigs in simulated data. Your unique/xenotypic contigs will then be
@@ -125,10 +125,13 @@ Optional options:
         -r/--read_suffix <STRING>       Read suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
         -l/--link                       After detecting unique contigs, attempt to link them to other reference samples.
         -t/--trace                      After detecting xenotypic contigs, trace them across all samples.
+	
         -c/--cores <INT>                Number of threads to use in parallisable parts of the pipeline
         -o/--output <STRING>            Output directory to put all the data
         -L/--alignment_length           Minimal alignment length to link unique sequences to other reference samples.
         -P/--alignment_pid              Minimal percent identity to link unique sequences to other reference samples.
+	--l/--force_relink		(re)Link unique sequences to reference samples, even when this step is already performed.
+
 ```
 
 If you want to modify any of the options (e.g. filtering thresholds, quality trimming),
