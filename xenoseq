@@ -2,7 +2,6 @@
 #
 #
 ########
-cores=4
 
 SCRIPT_PATH=`dirname "$0"`; SCRIPT_PATH=`eval "cd \"$SCRIPT_PATH\" && pwd"`
 source $SCRIPT_PATH/xenoseq_bin/functions.sh;
@@ -44,7 +43,8 @@ Optional options:
 	-r/--read_suffix <STRING> \tRead suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
 	-l/--link\t\t\tAfter detecting unique contigs, attempt to link them to other reference samples.
 	-t/--trace\t\t\tAfter detecting xenotypic contigs, trace them across all samples.
-	-c/--cores <INT>\t\tNumber of threads to use in parallisable parts of the pipeline
+	-c/--cores <INT>\t\tNumber of threads to use in relevant parts of the pipeline
+	-j/--jobs  <INT>\t\tMaximum number of parallel jobs 
 	-o/--output <STRING>\t\tOutput directory to put all the data
 	-L/--alignment_length\t\tMinimal alignment length to link unique sequences to other reference samples.
 	-P/--alignment_pid\t\tMinimal percent identity to link unique sequences to other reference samples.
@@ -59,9 +59,13 @@ trace=false
 link=false
 force_relink=false
 metadata=""
+jobs=1
+cores=8
 blength=300
 bpid=99
 xeno_filename="xenotypic_contigs"
+
+command=""
 
 while [ $# -gt 0 ]; do
 	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
@@ -81,6 +85,8 @@ while [ $# -gt 0 ]; do
 		path_to_reads=("$2")
 	elif [[ $1 =~ ^(-r|--read_suffix)$ ]]; then
 		read_suffix=("$2")
+	elif [[ $1 =~ ^(-j|--jobs)$ ]]; then
+		jobs=("$2")
 	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
 		cores=("$2")
 	elif [[ $1 =~ ^(-L|--alignment_length)$ ]]; then
@@ -134,24 +140,58 @@ echo -e "\t${GREEN}[OK]${NC}"
 mkdir -p ${output}/
 mkdir -p ${output}/logs
 
-echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 2) PREPARING REFERENCES${NC}"
+echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 2) PREPARING ALL SAMPLES${NC}"
 
 ############
 ###### Prepare reference samples ######
 ############
 
+trim_jobs=()
+asse_jobs=()
+blas_jobs=()
 for (( i=0; i<${#reference_samples[@]}; i++ )); do
-	echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Preparing reference ${reference_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+	echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating jobs for preparation of reference ${reference_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
 
 	r1=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | head -n 1)
 	r2=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | tail -n 1)
 	mkdir -p $output/${reference_samples[$i]}/reads
 	mkdir -p $output/${reference_samples[$i]}/logs
 
-	trim $r1 $r2 $output/${reference_samples[$i]}/reads/merged_reads.fasta
+	trim $r1 $r2 $output/${reference_samples[$i]}/reads/merged_reads.fasta #set current command to trim
+	if [[ ! " ${trim_jobs[*]} " =~ " ${command} " ]]; then trim_jobs+=($command); fi
 	assemble_mh $output/${reference_samples[$i]}/reads/merged_reads.fasta 100 $output/${reference_samples[$i]}/assembly
-	bwa_index $output/${reference_samples[$i]}/assembly/final.contigs.fa
+	if [[ ! " ${asse_jobs[*]} " =~ " ${command} " ]]; then asse_jobs+=($command); fi
 	blastdb $output/${reference_samples[$i]}/assembly/final.contigs.fa 
+	if [[ ! " ${blas_jobs[*]} " =~ " ${command} " ]]; then blas_jobs+=($command); fi
+done
+
+for (( i=0; i<${#query_samples[@]}; i++ )); do
+	echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating jobs for preparation of query ${query_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+
+	r1=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | head -n 1)
+	r2=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | tail -n 1)
+	mkdir -p $output/${query_samples[$i]}/reads
+	mkdir -p $output/${query_samples[$i]}/logs
+
+	trim $r1 $r2 $output/${query_samples[$i]}/reads/merged_reads.fasta #set current command to trim
+	if [[ ! " ${trim_jobs[*]} " =~ " ${command} " ]]; then trim_jobs+=($command); fi
+	assemble_mh $output/${query_samples[$i]}/reads/merged_reads.fasta 100 $output/${query_samples[$i]}/assembly
+	if [[ ! " ${asse_jobs[*]} " =~ " ${command} " ]]; then asse_jobs+=($command); fi
+	
+	blastdb $output/${query_samples[$i]}/assembly/final.contigs.fa 
+	if [[ ! " ${blas_jobs[*]} " =~ " ${command} " ]]; then blas_jobs+=($command); fi
+done
+
+echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running all preparation jobs in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+echo ${trim_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs 2> /dev/null
+echo ${asse_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs 2> /dev/null
+echo ${blas_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs > /dev/null 2>&1
+
+for (( i=0; i<${#reference_samples[@]}; i++ )); do
+	bwa_index $output/${reference_samples[$i]}/assembly/final.contigs.fa
+done
+for (( i=0; i<${#query_samples[@]}; i++ )); do
+	bwa_index $output/${query_samples[$i]}/assembly/final.contigs.fa
 done
 
 echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 3) MAPPING TO REFERENCE${NC}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
@@ -160,21 +200,28 @@ echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 3) MAPPING TO RE
 ###### Mapping to queries and assembling unique reads into contigs (unique_contigs.fasta) ######
 ############
 
+find_jobs=()
 for (( i=0; i<${#query_samples[@]}; i++ )); do
 	echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Looking for unique/xenotypic contigs in ${query_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
 
 	r1=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | head -n 1)
 	r2=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | tail -n 1)
 	reads=$output/${query_samples[$i]}/reads/merged_reads.fasta
-	trim $r1 $r2 $reads
+	#trim $r1 $r2 $reads #depricated due to parallelisation changes
 	index=$output/${reference_samples[$i]}/assembly/final.contigs.fa
 	mkdir -p $output/${query_samples[$i]}/read_mapping
 	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
 	bwa_map $index $reads $out
 	unmapped_to_fasta $out.sorted.bam ${reference_samples[$i]}
 	assemble_mh $output/${query_samples[$i]}/reads/unique_reads.fasta 300 $output/${query_samples[$i]}/unique_assembly
+	if [[ ! " ${find_jobs[*]} " =~ " ${command} " ]]; then find_jobs+=($command); fi
+done
+
+echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Running assembly of all unique reads in parallel ($jobs jobs at a time)"
+echo ${find_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs 2> /dev/null
+
+for (( i=0; i<${#query_samples[@]}; i++ )); do
 	seqkit sort -l -r $output/${query_samples[$i]}/unique_assembly/final.contigs.fa > $output/${query_samples[$i]}/unique_contigs.fasta 2> $output/logs/seqkit.log
-	
 	if [[ $link = "true" || $force_relink = "true" ]]; then
 		if [[ $force_relink = "true" ]]; then 
 			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
@@ -187,7 +234,7 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 					out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$j]}"
 					bwa_map $index $reads $out
 					samtools_coverage $out
-					ref="${reference_samples[$j]}";
+					ref="${reference_samples[$j]}"
 					link_contig $output/${query_samples[$i]}/unique_contigs.fasta $index $output/${query_samples[$i]}/unique_contig_links_to_${reference_samples[$j]}.tbl
 				fi
 			fi

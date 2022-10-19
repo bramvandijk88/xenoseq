@@ -32,12 +32,12 @@ function trim() {
 	r2=$2
 	out=$3
 	if [ -f $out ]; then
-		echo -e "[xenoseq_trim     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing $out.${NC}"
+		echo -e "[xenoseq_trim     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing $out.${NC}"
 	else
-		command="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $out"
+		command="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $out;"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		eval $command
-		success $? "Trimming (fastp)"
+		#eval $command
+		#success $? "Trimming (fastp)"
 	fi
 }
 
@@ -55,7 +55,7 @@ function samtools_coverage() {
 
 function link_contig (){
 	if [ -f $3 ]; then 
-		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing ${3}${NC}"
+		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing ${3}${NC}"
 	else
 		blastn -query $1 -db $2 -outfmt '6 qseqid sseqid pident length slen' \
 			| awk -v blength=$blength -v bpid=$bpid '{if($4>blength && $3 > bpid)print $1}' | sort | uniq | sort -nr | awk -v r="$ref" '{print $0"\t"r}' >> $3
@@ -70,20 +70,20 @@ function assemble_mh() {
 	out=$3
 
 	if [ -f $out/final.contigs.fa ]; then
-		echo -e "[xenoseq_mega     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing $out/final.contigs.fa${NC}"
+		echo -e "[xenoseq_mega     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing $out/final.contigs.fa${NC}"
 	else
 		rm -rf $out
-		command="megahit -r $reads -t $cores --min-contig-len $minlen --presets meta-large -o $out"
+		command="megahit -r $reads -t $cores --min-contig-len $minlen --presets meta-large -o $out;"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		$command 2> ${output}/${reference_samples[$i]}/logs/megahit.log
-		success $? "Assembly (megahit)"
+		# $command 2> ${output}/${reference_samples[$i]}/logs/megahit.log
+		# success $? "Assembly (megahit)"
 	fi
 }
 
 # Make burrows-wheeler index
 function bwa_index()  {
 	if [ -f $1.bwt ]; then
-		echo -e "[xenoseq_indx     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing $1.bwt${NC}"
+		echo -e "[xenoseq_indx     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing $1.bwt${NC}"
 	else
 		command="bwa index $1"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
@@ -95,12 +95,12 @@ function bwa_index()  {
 # Make blastdb
 function blastdb() {
 	if [ -f $1.nhr ]; then
-		echo -e "[xenoseq_blasdb   $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing blastdb $1.nhr${NC}"
+		echo -e "[xenoseq_blasdb   $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing blastdb $1.nhr${NC}"
 	else
-		command="makeblastdb -in $1 -dbtype nucl"
+		command="makeblastdb -in $1 -dbtype nucl;"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		$command > ${output}/${reference_samples[$i]}/logs/blastdb.log 2>&1
-		success $? "Make blastdb"
+		# $command > ${output}/${reference_samples[$i]}/logs/blastdb.log 2>&1
+		# success $? "Make blastdb"
 	fi
 }
 
