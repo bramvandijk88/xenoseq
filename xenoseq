@@ -48,7 +48,7 @@ Optional options:
 	-o/--output <STRING>\t\tOutput directory to put all the data
 	-L/--alignment_length\t\tMinimal alignment length to link unique sequences to other reference samples.
 	-P/--alignment_pid\t\tMinimal percent identity to link unique sequences to other reference samples.
-	--l/--force_relink\t\tLink unique sequences to reference samples, even when this step is already performed."
+	--l/--force_relink\t\tLink unique sequences to reference samples, even when this step is already performed.\n"
 }
 
 #OPTS
@@ -62,7 +62,7 @@ metadata=""
 jobs=1
 cores=8
 blength=300
-bpid=99
+bpid=97
 xeno_filename="xenotypic_contigs"
 
 command=""

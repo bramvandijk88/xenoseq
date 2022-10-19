@@ -124,13 +124,13 @@ Optional options:
         -p/--path_to_reads <STRING>     Path to reads for samples in metadata
         -r/--read_suffix <STRING>       Read suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
         -l/--link                       After detecting unique contigs, attempt to link them to other reference samples.
+        -L/--alignment_length <INT>     Minimal alignment length to link unique sequences to other reference samples. (default 300, requires -l)
+        -P/--alignment_pid <INT>        Minimal percent identity to link unique sequences to other reference samples. (default 97, requires -l)
+	--l/--force_relink		Link unique sequences to reference samples, even when this step is already performed."
         -t/--trace                      After detecting xenotypic contigs, trace them across all samples.
-	
-        -c/--cores <INT>                Number of threads to use in parallisable parts of the pipeline
         -o/--output <STRING>            Output directory to put all the data
-        -L/--alignment_length           Minimal alignment length to link unique sequences to other reference samples.
-        -P/--alignment_pid              Minimal percent identity to link unique sequences to other reference samples.
-	--l/--force_relink		(re)Link unique sequences to reference samples, even when this step is already performed.
+	-j/--jobs			Number of jobs to run in parallel (assembly and trimming only)	
+        -c/--cores <INT>                Number of threads to use in multthreaded parts of the pipeline
 
 ```
 
