@@ -1,11 +1,13 @@
-name: xenoseq
+name: xenoseq2
 channels:
   - bioconda
   - default
   - defaults
+  - conda-forge
 dependencies:
   - seqkit
   - megahit
+  - parallel
   - fastp
   - bwa
   - samtools

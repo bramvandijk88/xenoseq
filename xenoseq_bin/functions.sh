@@ -32,6 +32,7 @@ function trim() {
 	r2=$2
 	out=$3
 	if [ -f $out ]; then
+		command=""
 		echo -e "[xenoseq_trim     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing $out.${NC}"
 	else
 		command="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $out;"
@@ -44,6 +45,7 @@ function trim() {
 function samtools_coverage() {
 	bam_name=$1
 	if [ -f ${1}_coverage.txt ]; then
+		command=""
 		echo -e "[xenoseq_cover    $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing ${1}_coverage.txt${NC}"
 	else
 		command="samtools coverage ${1}.sorted.bam"
@@ -70,6 +72,7 @@ function assemble_mh() {
 	out=$3
 
 	if [ -f $out/final.contigs.fa ]; then
+		command=""
 		echo -e "[xenoseq_mega     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing $out/final.contigs.fa${NC}"
 	else
 		rm -rf $out
@@ -83,12 +86,13 @@ function assemble_mh() {
 # Make burrows-wheeler index
 function bwa_index()  {
 	if [ -f $1.bwt ]; then
+		command=""
 		echo -e "[xenoseq_indx     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing $1.bwt${NC}"
 	else
-		command="bwa index $1"
+		command="bwa index $1;"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		$command 2> ${output}/${reference_samples[$i]}/logs/bwa_index.log
-		success $? "Bwa index"
+		#$command 2> ${output}/${reference_samples[$i]}/logs/bwa_index.log
+		#success $? "Bwa index"
 	fi
 }
 

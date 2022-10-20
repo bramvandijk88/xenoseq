@@ -14,7 +14,7 @@ PRP='\033[0;35m'	# COSMETIC
 GREY='\033[0;90m'	# CMD message
 NC='\033[0m' # No Color
 
-version="1.0.0"         # Stable release of previous changes.
+version="1.0.1"         # Stable release of previous changes.
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
@@ -32,25 +32,6 @@ echo -e "----------------------------------------------------------------------"
 echo -e "                          (XENOSEQ v${version})                            "
 echo -e "----------------------------------------------------------------------\n"
 
-print_usage() {
-	echo -e "xenoseq v${version}\n"
-	echo -e "contact: bramvandijk88@gmail.com\n"
-	echo -e "Usage:\n\t xenoseq -m <meta_data_tsv> -o <output_dir> -c <num_cores> -t"
-	echo -e "Mandatory:
-	-m/--metadata\t\tFile containing the metadata (tsv file with query-reference sets)
-Optional options:
-	-p/--path_to_reads <STRING> \tPath to reads for samples in metadata
-	-r/--read_suffix <STRING> \tRead suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
-	-l/--link\t\t\tAfter detecting unique contigs, attempt to link them to other reference samples.
-	-t/--trace\t\t\tAfter detecting xenotypic contigs, trace them across all samples.
-	-c/--cores <INT>\t\tNumber of threads to use in relevant parts of the pipeline
-	-j/--jobs  <INT>\t\tMaximum number of parallel jobs 
-	-o/--output <STRING>\t\tOutput directory to put all the data
-	-L/--alignment_length\t\tMinimal alignment length to link unique sequences to other reference samples.
-	-P/--alignment_pid\t\tMinimal percent identity to link unique sequences to other reference samples.
-	--l/--force_relink\t\tLink unique sequences to reference samples, even when this step is already performed.\n"
-}
-
 #OPTS
 output="Xenoseq_default"
 path_to_reads="samples/reads"
@@ -59,11 +40,35 @@ trace=false
 link=false
 force_relink=false
 metadata=""
-jobs=1
-cores=8
+jobs=4
+cores=4
+max_assembly_jobs=4
+assembly_cores=4
 blength=300
 bpid=97
 xeno_filename="xenotypic_contigs"
+
+print_usage() {
+	echo -e "xenoseq v${version}\n"
+	echo -e "contact: bramvandijk88@gmail.com\n"
+	echo -e "Usage:\n\t xenoseq -m <meta_data_tsv> -o <output_dir> -c <num_cores> -t"
+	echo -e "Mandatory:
+	-m/--metadata\t\tFile containing the metadata (tsv file with query-reference sets)
+Optional options:
+	-p/--path_to_reads <STRING> \tPath to reads for samples in metadata (default = $path_to_reads)
+	-r/--read_suffix <STRING> \tRead suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq) (default = ${read_suffix})
+	-l/--link\t\t\tAfter detecting unique contigs, attempt to link them to other reference samples.
+	-t/--trace\t\t\tAfter detecting xenotypic contigs, trace them across all samples.
+	-c/--cores <INT>\t\tNumber of CPUs to use for smaller tasks (passed on to bwa, samtools, etc.) (default = ${cores})
+	-C/--assembly_cores <INT>\t\tNumber of CPUs to use for assembly (megahit) (default = ${cores})
+	-j/--jobs  <INT>\t\tMaximum number of parallel jobs (default = ${jobs})
+	-J/--max_assembly_jobs  <INT>\tMaximum number of parallel jobs for assembly (default = $max_assembly_jobs)
+	-o/--output <STRING>\t\tOutput directory to put all the data
+	-L/--alignment_length\t\tMinimal alignment length to link unique sequences to other reference samples.
+	-P/--alignment_pid\t\tMinimal percent identity to link unique sequences to other reference samples.
+	-f/--force_relink\t\tLink unique sequences to reference samples, even when this step is already performed.\n"
+}
+
 
 command=""
 
@@ -79,6 +84,12 @@ while [ $# -gt 0 ]; do
 		trace=true
 	elif [[ $1 =~ ^(-l|--link)$ ]]; then
 		link=true
+	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
+		cores=("$2")
+	elif [[ $1 =~ ^(-C|--assembly_cores)$ ]]; then
+		assembly_cores=("$2")
+	elif [[ $1 =~ ^(-J|--max_assembly_jobs)$ ]]; then
+		max_assembly_jobs=("$2")
 	elif [[ $1 =~ ^(-f|--force_relink)$ ]]; then
 		force_relink=true
 	elif [[ $1 =~ ^(-p|--path_to_reads)$ ]]; then
@@ -87,8 +98,6 @@ while [ $# -gt 0 ]; do
 		read_suffix=("$2")
 	elif [[ $1 =~ ^(-j|--jobs)$ ]]; then
 		jobs=("$2")
-	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
-		cores=("$2")
 	elif [[ $1 =~ ^(-L|--alignment_length)$ ]]; then
 		blength=("$2")
 	elif [[ $1 =~ ^(-P|--alignment_pid)$ ]]; then
@@ -100,7 +109,15 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-
+max_load=$(( $jobs * $cores ));
+max_load_assembly=$(( $max_assembly_jobs * $assembly_cores ));
+nproc=$(nproc --all)
+if [ "$max_load" -gt "$nproc" ]; then
+	echo -e "[${RED}xenoseq_warn${NC}     $(date +%d-%m_%H:%M:%S)] ${RED}the max cpus in use ($max_load) exceeds the number of cpus on this machine (${nproc}). hoping for the best. ¯\\\_(\ツ)_/¯${NC}"
+fi;
+if [ "$max_load_assembly" -gt "$nproc" ]; then
+	echo -e "[${RED}xenoseq_warn${NC}     $(date +%d-%m_%H:%M:%S)] ${RED}the max cpus in use for assembly ($max_load_assembly) exceeds the number of cpus on this machine (${nproc}). hoping for the best. ¯\\\_(\ツ)_/¯${NC}"
+fi;
 ############
 ###### Parsing meta data ######
 ############
@@ -148,7 +165,7 @@ echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 2) PREPARING ALL
 
 trim_jobs=()
 asse_jobs=()
-blas_jobs=()
+db_jobs=()
 for (( i=0; i<${#reference_samples[@]}; i++ )); do
 	echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating jobs for preparation of reference ${reference_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
 
@@ -162,7 +179,9 @@ for (( i=0; i<${#reference_samples[@]}; i++ )); do
 	assemble_mh $output/${reference_samples[$i]}/reads/merged_reads.fasta 100 $output/${reference_samples[$i]}/assembly
 	if [[ ! " ${asse_jobs[*]} " =~ " ${command} " ]]; then asse_jobs+=($command); fi
 	blastdb $output/${reference_samples[$i]}/assembly/final.contigs.fa 
-	if [[ ! " ${blas_jobs[*]} " =~ " ${command} " ]]; then blas_jobs+=($command); fi
+	if [[ ! " ${db_jobs[*]} " =~ " ${command} " ]]; then db_jobs+=($command); fi
+	bwa_index $output/${reference_samples[$i]}/assembly/final.contigs.fa
+	if [[ ! " ${db_jobs[*]} " =~ " ${command} " ]]; then db_jobs+=($command); fi;
 done
 
 for (( i=0; i<${#query_samples[@]}; i++ )); do
@@ -177,22 +196,27 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	if [[ ! " ${trim_jobs[*]} " =~ " ${command} " ]]; then trim_jobs+=($command); fi
 	assemble_mh $output/${query_samples[$i]}/reads/merged_reads.fasta 100 $output/${query_samples[$i]}/assembly
 	if [[ ! " ${asse_jobs[*]} " =~ " ${command} " ]]; then asse_jobs+=($command); fi
-	
 	blastdb $output/${query_samples[$i]}/assembly/final.contigs.fa 
-	if [[ ! " ${blas_jobs[*]} " =~ " ${command} " ]]; then blas_jobs+=($command); fi
-done
-
-echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running all preparation jobs in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
-echo ${trim_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs 2> /dev/null
-echo ${asse_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs 2> /dev/null
-echo ${blas_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs > /dev/null 2>&1
-
-for (( i=0; i<${#reference_samples[@]}; i++ )); do
-	bwa_index $output/${reference_samples[$i]}/assembly/final.contigs.fa
-done
-for (( i=0; i<${#query_samples[@]}; i++ )); do
+	if [[ ! " ${db_jobs[*]} " =~ " ${command} " ]]; then db_jobs+=($command); fi
 	bwa_index $output/${query_samples[$i]}/assembly/final.contigs.fa
+	if [[ ! " ${db_jobs[*]} " =~ " ${command} " ]]; then db_jobs+=($command); fi;
 done
+
+num_trim=$(echo ${trim_jobs[*]} | tr -cd ';' | wc -c)
+num_asse=$(echo ${asse_jobs[*]} | tr -cd ';' | wc -c)
+num_db=$(echo ${db_jobs[*]} | tr -cd ';' | wc -c)
+
+echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running ${num_trim} trimming jobs in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+echo ${trim_jobs[*]} | tr ';' '\n' | parallel -j $jobs > /dev/null 2>&1
+echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${GREEN}Trimming/merging with fastp completed succesfully for ${num_trim} jobs${NC}"
+
+echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running ${num_asse} assembly jobs in parallel ($max_assembly_jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+echo ${asse_jobs[*]} | tr ';' '\n' | parallel -j $max_assembly_jobs > /dev/null 2>&1
+echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${GREEN}Assembly with megahit completed succesfully for ${num_asse} jobs${NC}"
+ 
+echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running ${num_db} database (blast, bwa) jobs in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+echo ${db_jobs[*]} | tr ';' '\n' | parallel -j $jobs > /dev/null 2>&1
+echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${GREEN}Setting up all databases (blast, bwa) completed for ${num_db} jobs${NC}"
 
 echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 3) MAPPING TO REFERENCE${NC}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
 
@@ -220,7 +244,7 @@ done
 echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Running assembly of all unique reads in parallel ($jobs jobs at a time)"
 echo ${find_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs 2> /dev/null
 
-for (( i=0; i<${#query_samples[@]}; i++ )); do
+or (( i=0; i<${#query_samples[@]}; i++ )); do
 	seqkit sort -l -r $output/${query_samples[$i]}/unique_assembly/final.contigs.fa > $output/${query_samples[$i]}/unique_contigs.fasta 2> $output/logs/seqkit.log
 	if [[ $link = "true" || $force_relink = "true" ]]; then
 		if [[ $force_relink = "true" ]]; then 

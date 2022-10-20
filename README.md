@@ -32,7 +32,7 @@ read filtering (samtools), and local alignment (blast), to detect putative evide
 of horizontal transfer between communities. This tool was used in a recent publication
 (<preprint_available_soon>) to detect the movement of MGEs and nanobacteria in compost communities. (see Figure below for the experimental setup and subroutines in Xenoseq)
 
-![Xenoseq was applied to detect the movement of MGEs in compost](./FIgure_1.png)
+![Xenoseq was applied to detect the movement of MGEs in compost](./Xenoseq.png)
 
 ## Install: conda setup (required)
 To use xenoseq, a conda environment file is provided to install the above mentioned
