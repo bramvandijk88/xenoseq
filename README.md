@@ -27,8 +27,7 @@ which the pipeline will use to generate the following output:
 * xenotypic_coverage.txt; text files to estimate the abundance of xenotypic sequences in non-ancestral samples
 
 ## Overview
-Xenoseq wraps read trimming (fastp), assembly (megahit), read mapping (BWA),
-read filtering (samtools), and local alignment (blast), to detect putative evidence
+Xenoseq wraps read trimming (fastp), assembly (megahit), read mapping (BWA), read filtering (samtools), and local alignment (blast), to detect putative evidence
 of horizontal transfer between communities. This tool was used in a recent publication
 (<preprint_available_soon>) to detect the movement of MGEs and nanobacteria in compost communities. (see Figure below for the experimental setup and subroutines in Xenoseq)
 
