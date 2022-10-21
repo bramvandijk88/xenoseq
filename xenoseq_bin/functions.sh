@@ -54,13 +54,13 @@ function samtools_coverage() {
 }
 
 function link_contig (){
-	if [ -f $3 ]; then 
-		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing ${3}${NC}"
-	else
+	#if [ -f $3 ]; then 
+		#echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing ${3}${NC}"
+	#else
 		blastn -query $1 -db $2 -outfmt '6 qseqid sseqid pident length slen' \
 			| awk -v blength=$blength -v bpid=$bpid '{if($4>blength && $3 > bpid)print $1}' | sort | uniq | sort -nr | awk -v r="$ref" '{print $0"\t"r}' >> $3
 		success $? "Blast linking"
-	fi
+	#fi
 }
 
 # assembly with megahit
@@ -68,15 +68,14 @@ function assemble_mh() {
 	reads=$1
 	minlen=$2
 	out=$3
-
 	if [ -f $out/final.contigs.fa ]; then
 		echo -e "[xenoseq_mega     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing $out/final.contigs.fa${NC}"
 	else
 		rm -rf $out
-		command="megahit -r $reads -t $cores --min-contig-len $minlen --presets meta-large -o $out;"
+		command="megahit -r $reads -t $cores --min-contig-len $minlen -o $out"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		# $command 2> ${output}/${reference_samples[$i]}/logs/megahit.log
-		# success $? "Assembly (megahit)"
+		$command 2> ${output}/${reference_samples[$i]}/logs/megahit.log
+		success $? "Assembly (megahit)"
 	fi
 }
 
@@ -111,7 +110,7 @@ function bwa_map()  {
 	else
 		command="bwa mem -t $cores $1 $2"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		$command > $3.bam 2> ${output}/${reference_samples[$i]}/logs/bwa_map.log
+		$command > $3.bam 2> ${output}/${reference_samples[$i]}/logs/bwa_map.log		
 		success $? "Bwa mapping"
 		command="samtools sort -@ $cores $3.bam -o $3.sorted.bam"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
@@ -121,19 +120,21 @@ function bwa_map()  {
 }
 
 function unmapped_to_fasta() {
-	if [ -f $output/${query_samples[$i]}/reads/unique_reads.fasta ]; then
-		echo -e "[xenoseq_filter   $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing file $output/${query_samples[$i]}/reads/unique_reads.fasta${NC}"
+	if [ -f $output/${sample}}/reads/unique_reads.fasta ]; then
+		echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing file $output/${sample}/reads/unique_reads.fasta${NC}"
 	else
-		echo -e "[xenoseq_filter   $(date +%d-%m_%H:%M:%S)] Samtools: extracting non-hits "
+		echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Samtools: extracting non-hits "
 		samtools index $1
 		command="samtools view -f 4 $1"
-		$command > $output/${query_samples[$i]}/read_mapping/Unmapped_to_${2}.bam 2> ${output}/logs/samtools_filter.log
+		$command > $output/${sample}/read_mapping/Unmapped_to_${2}.bam 2> ${output}/logs/samtools_filter.log
 		success $? "samtools filter"
-		if [ -s $output/${query_samples[$i]}/read_mapping/Unmapped_to_${2}.bam ]; then
-			echo -e "[xenoseq_filter   $(date +%d-%m_%H:%M:%S)] Samtools: exporting fasta file for non-hits... "
-			command="samtools fasta $output/${query_samples[$i]}/read_mapping/Unmapped_to_${2}.bam"
-			$command > $output/${query_samples[$i]}/reads/unique_reads.fasta 2> ${output}/logs/samtools_fasta.log
+		if [ -f $output/${sample}/read_mapping/Unmapped_to_${2}.bam ]; then
+			#echo -e "[xenoseq_filter   $(date +%d-%m_%H:%M:%S)] Samtools: exporting fasta file for non-hits... "
+			command="samtools fasta $output/${sample}/read_mapping/Unmapped_to_${2}.bam"
+			$command > $output/${sample}/reads/unique_reads.fasta 2> ${output}/logs/samtools_fasta.log
 			success $? "samtools fasta"
+		else
+			echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Nothing unique found in ${sample} "
 		fi
 	fi
 }
@@ -141,7 +142,7 @@ function unmapped_to_fasta() {
 # Function to check if previous command was succesful
 function success() {
 	if [ ! $1 -eq 0 ]; then
-  		echo -e "${RED}Error in xenoseq ($2). See relevant log files in ${output}/${query_samples[$i]}/logs (exit 1).${NC}" >&2
+  		echo -e "${RED}Error in xenoseq ($2). See relevant log files in ${output}/${sample}/logs (exit 1).${NC}" >&2
   		exit 1;
 	fi
 }
