@@ -4,7 +4,7 @@
 ########
 
 SCRIPT_PATH=`dirname "$0"`; SCRIPT_PATH=`eval "cd \"$SCRIPT_PATH\" && pwd"`
-source $SCRIPT_PATH/xenoseq_bin/functions.sh;
+source $SCRIPT_PATH/bin/functions.sh;
 
 ORANGE='\033[0;33m' 	# WARNINGS
 RED='\033[0;31m'	# ERRORS
@@ -127,13 +127,10 @@ while [ $# -gt 0 ]; do
 done
 
 max_load=$(( $jobs * $cores ));
-max_load_assembly=$(( $max_assembly_jobs * $assembly_cores ));
 nproc=$(nproc --all)
 if [ "$max_load" -gt "$nproc" ]; then
-	echo -e "[${RED}xenoseq_warn${NC}     $(date +%d-%m_%H:%M:%S)] ${RED}the max cpus in use ($max_load) exceeds the number of cpus on this machine (${nproc}). hoping for the best. ¯\\\_(\ツ)_/¯${NC}"
-fi;
-if [ "$max_load_assembly" -gt "$nproc" ]; then
-	echo -e "[${RED}xenoseq_warn${NC}     $(date +%d-%m_%H:%M:%S)] ${RED}the max cpus in use for assembly ($max_load_assembly) exceeds the number of cpus on this machine (${nproc}). hoping for the best. ¯\\\_(\ツ)_/¯${NC}"
+	echo -e "[${RED}xenoseq_warn${NC}     $(date +%d-%m_%H:%M:%S)] ${RED}the max cpus in use ($max_load) exceeds the number of cpus on this machine (${nproc}). Exit 1 ¯\\\_(\ツ)_/¯${NC}"
+	exit 1
 fi;
 ############
 ###### Parsing meta data ######
@@ -190,7 +187,7 @@ for (( i=0; i<${#reference_samples[@]}; i++ )); do
 	mkdir -p $output/${reference_samples[$i]}/read_mapping
 	mkdir -p $output/${reference_samples[$i]}/logs
 
-	prep_jobs+="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $output/${reference_samples[$i]} \n"	
+	prep_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $output/${reference_samples[$i]} \n"	
 done
 
 for (( i=0; i<${#query_samples[@]}; i++ )); do
@@ -202,12 +199,12 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	mkdir -p $output/${query_samples[$i]}/read_mapping
 	mkdir -p $output/${query_samples[$i]}/logs
 
-	prep_jobs+="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $output/${query_samples[$i]} \n"
+	prep_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $output/${query_samples[$i]} \n"
 done
 
 #echo -en $prep_jobs
 echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running all preparation jobs in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
-echo -en $prep_jobs | sort | uniq | parallel -j $jobs
+echo -en $prep_jobs | sort | uniq | parallel -j $jobs --will-cite
 
 
 ############
@@ -223,12 +220,12 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	
 	reads=$output/${query_samples[$i]}/reads/merged_reads.fasta
 	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
-	main_jobs+="${SCRIPT_PATH}/xenoseq_bin/xenoseq_main -s $i ${cmd_args[@]} \n "	
+	main_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_main -s $i ${cmd_args[@]} \n "	
 done
 
 #echo -en $main_jobs 
-echo -e "[xenoseq          $(date +%d-%m_%H:%M:%S)] Running all xenoseq jobs (find, link, trace) in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
-echo -en $main_jobs | sort | uniq | parallel -j $jobs 
+echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Running all xenoseq jobs (find, link, trace) in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+echo -en $main_jobs | sort | uniq | parallel -j $jobs --will-cite
 
 echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq completed for all samples ${NC}" 
 

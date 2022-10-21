@@ -88,10 +88,10 @@ function bwa_index()  {
 		command=""
 		echo -e "[xenoseq_indx     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: no job created, using pre-existing $1.bwt${NC}"
 	else
-		command="bwa index $1;"
+		command="bwa index $1"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		#$command 2> ${output}/${reference_samples[$i]}/logs/bwa_index.log
-		#success $? "Bwa index"
+		$command 2> ${output}/${reference_samples[$i]}/logs/bwa_index.log
+		success $? "Bwa index"
 	fi
 }
 
@@ -102,8 +102,8 @@ function blastdb() {
 	else
 		command="makeblastdb -in $1 -dbtype nucl;"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		# $command > ${output}/${reference_samples[$i]}/logs/blastdb.log 2>&1
-		# success $? "Make blastdb"
+		$command > ${output}/${reference_samples[$i]}/logs/blastdb.log 2>&1
+		success $? "Make blastdb"
 	fi
 }
 
