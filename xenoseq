@@ -210,7 +210,7 @@ echo -en $prep_jobs | sort | uniq | parallel -j $jobs --will-cite
 ###### FIND unique reads and assemble into contigs, then link / trace them across samples
 ############
 
-echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 2) MAIN PIPELINE (FIND & TRACE)${NC}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 3) MAIN PIPELINE (FIND & TRACE)${NC}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
 
 main_jobs=()
 

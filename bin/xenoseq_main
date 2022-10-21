@@ -138,7 +138,7 @@ if [ $trace == "true" ] ; then
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
 				samtools_coverage $out
-				sed -i "s/$/\t${query_samples[$j]}/" ${out}_coverage.txt
+				sed -i "s/$/	${query_samples[$j]}/" ${out}_coverage.txt
 				tail -n+2 ${out}_coverage.txt >> $output/${sample}/unique_coverage.txt
 			fi
 		done
@@ -150,7 +150,7 @@ if [ $trace == "true" ] ; then
 				bwa_map $index $reads $out
 				if [ ! -f ${out}_coverage.txt ]; then
 					samtools_coverage $out
-					sed -i "s/$/\t${reference_samples[$j]}/" ${out}_coverage.txt
+					sed -i "s/$/	${reference_samples[$j]}/" ${out}_coverage.txt
 					tail -n+2 ${out}_coverage.txt >> $output/${sample}/unique_coverage.txt
 				fi
 			fi
@@ -169,7 +169,7 @@ if [ $trace == "true" ] ; then
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
 				samtools_coverage $out
-				sed -i "s/$/\t${query_samples[$j]}/" ${out}_coverage.txt
+				sed -i "s/$/	${query_samples[$j]}/" ${out}_coverage.txt
 				tail -n+2 ${out}_coverage.txt >> $output/${sample}/${xeno_filename}_coverage.txt
 			fi
 		done
@@ -181,13 +181,13 @@ if [ $trace == "true" ] ; then
 				bwa_map $index $reads $out
 				if [ ! -f ${out}_coverage.txt ]; then
 					samtools_coverage $out
-					sed -i "s/$/\t${reference_samples[$j]}/" ${out}_coverage.txt
+					sed -i "s/$/	${reference_samples[$j]}/" ${out}_coverage.txt
 					tail -n+2 ${out}_coverage.txt >> $output/${sample}/${xeno_filename}_coverage.txt
 				fi
 			fi
 		done
 	rm -rf $output/${sample}/${xeno_filename}.fasta.*
-	sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${sample}/${xeno_filename}_coverage.txt
+	sed -i "1i contig	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq	sample" $output/${sample}/${xeno_filename}_coverage.txt
 	fi 	
 
 fi
