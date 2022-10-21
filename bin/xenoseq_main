@@ -127,7 +127,6 @@ fi
 ############ 
 
 if [ $trace == "true" ] ; then
-	echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 4) TRACING UNIQUE/XENOTYPIC SEQUENCES${NC}"	
 	if [ -f $output/${sample}/unique_contigs.fasta ]; then
 		echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing unique contigs from ${sample} across all samples." 
 		bwa_index $output/${sample}/unique_contigs.fasta
@@ -156,7 +155,7 @@ if [ $trace == "true" ] ; then
 			fi
 		done
 	rm -rf $output/${sample}/unique_contigs.fasta.*
-	sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${sample}/unique_coverage.txt
+	sed -i "1i contig	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq	sample" $output/${sample}/unique_coverage.txt
 	fi 
 
 	if [ -s $output/${sample}/${xeno_filename}.fasta ]; then
