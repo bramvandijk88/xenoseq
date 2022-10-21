@@ -54,6 +54,7 @@ if [ -f $output/reads/merged_reads.fasta ]; then
 else
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Using fastp to prepare reads (trim, dedup, and merge)"
 	fastp -x -l 75 --cut_front 25 --cut_tail 25 -D --adapter_fasta $SCRIPT_PATH/adapter_sequences.fa -i $r1 -I $r2 -m --merged_out $output/reads/merged_reads.fasta --include_unmerged -h ${dir}/reads/QCreports/${filename}.html -j ${dir}/reads/QCreports/${filename}.json &> /dev/null
+	success $? "Fastq"
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Fastp completed; $BLUE$(basename $r1)$NC + $BLUE$(basename $r2)$NC --> ${BLUE}$(dirname $output)/${filename}.fasta${NC}"
 fi
 
@@ -62,6 +63,7 @@ if [ -f $output/assembly/final.contigs.fa ]; then
 else
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Using megahit to assemble reads"
 	megahit -r $output/reads/merged_reads.fasta -t $cores --min-contig-len 300 --preset meta-large -o $output/assembly &> /dev/null
+	success $? "Megahit"
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Assembly completed; ${BLUE} $output/assembly/final.contigs.fa ${NC}"
 fi
 
@@ -72,6 +74,7 @@ if [ -f $output/assembly/final.contigs.fa.ndb ]; then
 else
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Setting up blast database"
 	makeblastdb -in $output/assembly/final.contigs.fa -dbtype nucl &> /dev/null
+	success $? "Blastdb"
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] DB completed; ${BLUE} $output/assembly/final.contigs.fa.ndb ${NC}"
 fi
 
@@ -81,6 +84,7 @@ if [ -f $output/assembly/final.contigs.fa.bwt ]; then
 else
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Setting up BWA database"
 	bwa index $output/assembly/final.contigs.fa &> /dev/null
+	success $? "Bwa index"
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] DB completed; ${BLUE} $output/assembly/final.contigs.fa.bwt ${NC}"
 fi
 	
