@@ -129,8 +129,7 @@ done
 max_load=$(( $jobs * $cores ));
 nproc=$(nproc --all)
 if [ "$max_load" -gt "$nproc" ]; then
-	echo -e "[${RED}xenoseq_warn${NC}     $(date +%d-%m_%H:%M:%S)] ${RED}the max cpus in use ($max_load) exceeds the number of cpus on this machine (${nproc}). Exit 1 ¯\\\_(\ツ)_/¯${NC}"
-	exit 1
+	echo -e "[${RED}xenoseq_warn${NC}     $(date +%d-%m_%H:%M:%S)] ${RED}the max cpus in use ($max_load) exceeds the number of cpus on this machine (${nproc}). Hoping for the best ¯\\\_(\ツ)_/¯${NC}"
 fi;
 ############
 ###### Parsing meta data ######
