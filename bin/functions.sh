@@ -133,7 +133,6 @@ function unmapped_to_fasta() {
 		$command > $output/${sample}/read_mapping/Unmapped_to_${2}.bam 2> ${output}/logs/samtools_filter.log
 		success $? "samtools filter"
 		if [ -f $output/${sample}/read_mapping/Unmapped_to_${2}.bam ]; then
-			#echo -e "[xenoseq_filter   $(date +%d-%m_%H:%M:%S)] Samtools: exporting fasta file for non-hits... "
 			command="samtools fasta $output/${sample}/read_mapping/Unmapped_to_${2}.bam"
 			$command > $output/${sample}/reads/unique_reads.fasta 2> ${output}/logs/samtools_fasta.log
 			success $? "samtools fasta"
@@ -145,6 +144,8 @@ function unmapped_to_fasta() {
 
 # Function to check if previous command was succesful
 function success() {
+	echo ${output}
+	echo ${sample}
 	if [ ! $1 -eq 0 ]; then
   		echo -e "${RED}Error in xenoseq ($2). See relevant log files in ${output}/${sample}/logs (exit 1).${NC}" >&2
   		exit 1;
