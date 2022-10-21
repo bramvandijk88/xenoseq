@@ -144,7 +144,6 @@ function unmapped_to_fasta() {
 
 # Function to check if previous command was succesful
 function success() {
-	echo ${output}
 	if [ ! $1 -eq 0 ]; then
   		echo -e "${RED}Error in xenoseq ($2). See relevant log files in ${output}/logs (exit 1).${NC}" >&2
   		exit 1;
