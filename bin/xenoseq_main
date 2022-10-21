@@ -14,7 +14,6 @@ GREY='\033[0;90m'       # CMD message
 PRP='\033[0;35m'        # COSMETIC
 NC='\033[0m' # No Color
 
-
 metadata=""
 
 print_usage() {
