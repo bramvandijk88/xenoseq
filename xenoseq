@@ -69,8 +69,23 @@ Optional options:
 	-f/--force_relink\t\tLink unique sequences to reference samples, even when this step is already performed.\n"
 }
 
+#OPTS
+output="Xenoseq_default"
+path_to_reads="samples/reads"
+read_suffix="_R*.fq"
+trace=false
+link=false
+force_relink=false
+metadata=""
+jobs=1
+cores=8
+blength=300
+verbal=false
+bpid=97
+xeno_filename="xenotypic_contigs"
 
 command=""
+cmd_args=("$@")
 
 while [ $# -gt 0 ]; do
 	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
@@ -78,6 +93,8 @@ while [ $# -gt 0 ]; do
 		exit 1;
 	elif [[ $1 =~ ^(-m|--metadata)$ ]]; then
 		metadata=("$2")
+	elif [[ $1 =~ ^(-v|--verbal)$ ]]; then
+		verbal=true
 	elif [[ $1 =~ ^(-o|--output)$ ]]; then
 		output=("$2")
 	elif [[ $1 =~ ^(-t|--trace)$ ]]; then
@@ -163,198 +180,76 @@ echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 2) PREPARING ALL
 ###### Prepare reference samples ######
 ############
 
-trim_jobs=()
-asse_jobs=()
-db_jobs=()
+prep_jobs=()
 for (( i=0; i<${#reference_samples[@]}; i++ )); do
-	echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating jobs for preparation of reference ${reference_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating xenoseq_prep jobs for reference ${reference_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
 
 	r1=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | head -n 1)
 	r2=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | tail -n 1)
 	mkdir -p $output/${reference_samples[$i]}/reads
+	mkdir -p $output/${reference_samples[$i]}/read_mapping
 	mkdir -p $output/${reference_samples[$i]}/logs
 
-	trim $r1 $r2 $output/${reference_samples[$i]}/reads/merged_reads.fasta #set current command to trim
-	if [[ ! " ${trim_jobs[*]} " =~ " ${command} " ]]; then trim_jobs+=($command); fi
-	assemble_mh $output/${reference_samples[$i]}/reads/merged_reads.fasta 100 $output/${reference_samples[$i]}/assembly
-	if [[ ! " ${asse_jobs[*]} " =~ " ${command} " ]]; then asse_jobs+=($command); fi
-	blastdb $output/${reference_samples[$i]}/assembly/final.contigs.fa 
-	if [[ ! " ${db_jobs[*]} " =~ " ${command} " ]]; then db_jobs+=($command); fi
-	bwa_index $output/${reference_samples[$i]}/assembly/final.contigs.fa
-	if [[ ! " ${db_jobs[*]} " =~ " ${command} " ]]; then db_jobs+=($command); fi;
+	prep_jobs+="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $output/${reference_samples[$i]} \n"	
 done
 
 for (( i=0; i<${#query_samples[@]}; i++ )); do
-	echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating jobs for preparation of query ${query_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating xenoseq_prep jobs for query ${query_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
 
 	r1=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | head -n 1)
 	r2=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | tail -n 1)
 	mkdir -p $output/${query_samples[$i]}/reads
+	mkdir -p $output/${query_samples[$i]}/read_mapping
 	mkdir -p $output/${query_samples[$i]}/logs
 
-	trim $r1 $r2 $output/${query_samples[$i]}/reads/merged_reads.fasta #set current command to trim
-	if [[ ! " ${trim_jobs[*]} " =~ " ${command} " ]]; then trim_jobs+=($command); fi
-	assemble_mh $output/${query_samples[$i]}/reads/merged_reads.fasta 100 $output/${query_samples[$i]}/assembly
-	if [[ ! " ${asse_jobs[*]} " =~ " ${command} " ]]; then asse_jobs+=($command); fi
-	blastdb $output/${query_samples[$i]}/assembly/final.contigs.fa 
-	if [[ ! " ${db_jobs[*]} " =~ " ${command} " ]]; then db_jobs+=($command); fi
-	bwa_index $output/${query_samples[$i]}/assembly/final.contigs.fa
-	if [[ ! " ${db_jobs[*]} " =~ " ${command} " ]]; then db_jobs+=($command); fi;
+	prep_jobs+="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $output/${query_samples[$i]} \n"
 done
 
-num_trim=$(echo ${trim_jobs[*]} | tr -cd ';' | wc -c)
-num_asse=$(echo ${asse_jobs[*]} | tr -cd ';' | wc -c)
-num_db=$(echo ${db_jobs[*]} | tr -cd ';' | wc -c)
+#echo -en $prep_jobs
+echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running all preparation jobs in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+echo -en $prep_jobs | sort | uniq | parallel -j $jobs
 
-echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running ${num_trim} trimming jobs in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
-echo ${trim_jobs[*]} | tr ';' '\n' | parallel -j $jobs > /dev/null 2>&1
-echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${GREEN}Trimming/merging with fastp completed succesfully for ${num_trim} jobs${NC}"
-
-echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running ${num_asse} assembly jobs in parallel ($max_assembly_jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
-echo ${asse_jobs[*]} | tr ';' '\n' | parallel -j $max_assembly_jobs > /dev/null 2>&1
-echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${GREEN}Assembly with megahit completed succesfully for ${num_asse} jobs${NC}"
- 
-echo -e "\n[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running ${num_db} database (blast, bwa) jobs in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
-echo ${db_jobs[*]} | tr ';' '\n' | parallel -j $jobs > /dev/null 2>&1
-echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${GREEN}Setting up all databases (blast, bwa) completed for ${num_db} jobs${NC}"
-
-echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 3) MAPPING TO REFERENCE${NC}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
 
 ############
-###### Mapping to queries and assembling unique reads into contigs (unique_contigs.fasta) ######
+###### FIND unique reads and assemble into contigs, then link / trace them across samples
 ############
 
-find_jobs=()
+echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 2) MAIN PIPELINE (FIND & TRACE)${NC}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+
+main_jobs=()
+
 for (( i=0; i<${#query_samples[@]}; i++ )); do
-	echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Looking for unique/xenotypic contigs in ${query_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
-
-	r1=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | head -n 1)
-	r2=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | tail -n 1)
+	echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Generating xenoseq jobs for ${query_samples[$i]}" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+	
 	reads=$output/${query_samples[$i]}/reads/merged_reads.fasta
-	#trim $r1 $r2 $reads #depricated due to parallelisation changes
-	index=$output/${reference_samples[$i]}/assembly/final.contigs.fa
-	mkdir -p $output/${query_samples[$i]}/read_mapping
 	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
-	bwa_map $index $reads $out
-	unmapped_to_fasta $out.sorted.bam ${reference_samples[$i]}
-	assemble_mh $output/${query_samples[$i]}/reads/unique_reads.fasta 300 $output/${query_samples[$i]}/unique_assembly
-	if [[ ! " ${find_jobs[*]} " =~ " ${command} " ]]; then find_jobs+=($command); fi
+	main_jobs+="${SCRIPT_PATH}/xenoseq_bin/xenoseq_main -s $i ${cmd_args[@]} \n "	
 done
 
-echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Running assembly of all unique reads in parallel ($jobs jobs at a time)"
-echo ${find_jobs[*]} | tr ';' '\n' | parallel --keep-order -j $jobs 2> /dev/null
+#echo -en $main_jobs 
+echo -e "[xenoseq          $(date +%d-%m_%H:%M:%S)] Running all xenoseq jobs (find, link, trace) in parallel ($jobs jobs at a time)" # Note to user, to just run this part instead of the whole pipeline, use 'xenoseq_find'
+echo -en $main_jobs | sort | uniq | parallel -j $jobs 
 
-or (( i=0; i<${#query_samples[@]}; i++ )); do
-	seqkit sort -l -r $output/${query_samples[$i]}/unique_assembly/final.contigs.fa > $output/${query_samples[$i]}/unique_contigs.fasta 2> $output/logs/seqkit.log
-	if [[ $link = "true" || $force_relink = "true" ]]; then
-		if [[ $force_relink = "true" ]]; then 
-			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
-		fi
-		unique_refs=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-		for (( j=0; j<${#unique_refs[@]}; j++ )); do
-			if [ ! $j -eq $i ]; then
-				if [ -s $output/${query_samples[$i]}/unique_contigs.fasta ]; then
-					index=$output/${reference_samples[$j]}/assembly/final.contigs.fa
-					out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$j]}"
-					bwa_map $index $reads $out
-					samtools_coverage $out
-					ref="${reference_samples[$j]}"
-					link_contig $output/${query_samples[$i]}/unique_contigs.fasta $index $output/${query_samples[$i]}/unique_contig_links_to_${reference_samples[$j]}.tbl
-				fi
-			fi
-		done
-		if ls $output/${query_samples[$i]}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
-			cat $output/${query_samples[$i]}/unique_contig_links_to_*.tbl > $output/${query_samples[$i]}/unique_contig_all_links_L${blength}_P${bpid}.tbl
-			rm -f $output/${query_samples[$i]}/unique_contig_links_to_*.tbl
-			cat $output/${query_samples[$i]}/unique_contig_all_links_L${blength}_P${bpid}.tbl | cut -f1 > $output/${query_samples[$i]}/${xeno_filename}.txt
-			seqkit grep -f $output/${query_samples[$i]}/${xeno_filename}.txt $output/${query_samples[$i]}/unique_contigs.fasta -o $output/${query_samples[$i]}/${xeno_filename}.fasta 2> $output/logs/xenotypic.log
-		fi
-	fi
-	num_uniq=0
-	if [ -f $output/${query_samples[$i]}/unique_contigs.fasta ]; then num_uniq=$(grep -c '>' $output/${query_samples[$i]}/unique_contigs.fasta); fi
-	num_xenos=0
-	if [ -f $output/${query_samples[$i]}/${xeno_filename}.fasta ]; then num_xenos=$(grep -c '>' $output/${query_samples[$i]}/${xeno_filename}.fasta); fi
-	if [ $link == "true" ]; then 
-		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${query_samples[$i]}. $num_xenos of these are xenotypic. ${NC}"
-	else 
-		echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${query_samples[$i]}. Skipping xenoseq_link (-l not set) ${NC}"
-	fi
+echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq completed for all samples ${NC}" 
 
-done
-
-############
-###### Tracing across samples ######
-############ 
-
-if [ $trace == "true" ] ; then
-	echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 4) TRACING UNIQUE/XENOTYPIC SEQUENCES${NC}"
-
-	for (( i=0; i<${#query_samples[@]}; i++ )); do
-
-		if [ -s $output/${query_samples[$i]}/unique_contigs.fasta ]; then
-			echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing unique contigs from ${query_samples[$i]} across all samples." 
-			bwa_index $output/${query_samples[$i]}/unique_contigs.fasta
-			for (( j=0; j<${#query_samples[@]}; j++ )); do
-				index=$output/${query_samples[$i]}/unique_contigs.fasta
-				reads="$output/${query_samples[$j]}/reads/merged_reads.fasta"
-				out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_unique_from_${query_samples[$i]}"
-				bwa_map $index $reads $out
-				if [ ! -f ${out}_coverage.txt ]; then
-					samtools_coverage $out
-					sed -i "s/$/\t${query_samples[$j]}/" ${out}_coverage.txt
-					tail -n+2 ${out}_coverage.txt >> $output/${query_samples[$i]}/unique_coverage.txt
-				fi
-			done
-			for (( j=0; j<${#reference_samples[@]}; j++ )); do
-				index=$output/${query_samples[$i]}/unique_contigs.fasta
-				mkdir -p $output/${reference_samples[$j]}/read_mapping
-				if [ -s $output/${query_samples[$i]}/unique_contigs.fasta ]; then
-					reads="$output/${reference_samples[$j]}/reads/merged_reads.fasta"
-					out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_unique_from_${query_samples[$i]}"
-					bwa_map $index $reads $out
-					if [ ! -f ${out}_coverage.txt ]; then
-						samtools_coverage $out
-						sed -i "s/$/\t${reference_samples[$j]}/" ${out}_coverage.txt
-						tail -n+2 ${out}_coverage.txt >> $output/${query_samples[$i]}/unique_coverage.txt
-					fi
-				fi
-			done
-		rm -rf $output/${query_samples[$i]}/unique_contigs.fasta.*
-		sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${query_samples[$i]}/unique_coverage.txt
-		fi 
-
-		if [ -s $output/${query_samples[$i]}/${xeno_filename}.fasta ]; then
-			echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing xenotypic contigs from ${query_samples[$i]} across all samples." 
-			bwa_index $output/${query_samples[$i]}/${xeno_filename}.fasta
-			for (( j=0; j<${#query_samples[@]}; j++ )); do
-				index=$output/${query_samples[$i]}/${xeno_filename}.fasta
-				reads="$output/${query_samples[$j]}/reads/merged_reads.fasta"
-				out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_${xeno_filename}_from_${query_samples[$i]}"
-				bwa_map $index $reads $out
-				if [ ! -f ${out}_coverage.txt ]; then
-					samtools_coverage $out
-					sed -i "s/$/\t${query_samples[$j]}/" ${out}_coverage.txt
-					tail -n+2 ${out}_coverage.txt >> $output/${query_samples[$i]}/${xeno_filename}_coverage.txt
-				fi
-			done
-			for (( j=0; j<${#reference_samples[@]}; j++ )); do
-				index=$output/${query_samples[$i]}/${xeno_filename}.fasta
-				mkdir -p $output/${reference_samples[$j]}/read_mapping
-				if [ -s $output/${query_samples[$i]}/${xeno_filename}.fasta ]; then
-					reads="$output/${reference_samples[$j]}/reads/merged_reads.fasta"
-					out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_${xeno_filename}_from_${query_samples[$i]}"
-					bwa_map $index $reads $out
-					if [ ! -f ${out}_coverage.txt ]; then
-						samtools_coverage $out
-						sed -i "s/$/\t${reference_samples[$j]}/" ${out}_coverage.txt
-						tail -n+2 ${out}_coverage.txt >> $output/${query_samples[$i]}/${xeno_filename}_coverage.txt
-					fi
-				fi
-			done
-		rm -rf $output/${query_samples[$i]}/xenotypic_contigs.fasta.*
-		sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${query_samples[$i]}/${xeno_filename}_coverage.txt
-		fi 
-	done
+if [[ $force_relink = "true" ]]; then 
+	xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
 fi
 
-echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq finished.${NC}"
+for (( i=0; i<${#query_samples[@]}; i++ )); do
+	sample=${query_samples[$i]}
+	num_uniq=0
+	if [ -f $output/${sample}/unique_contigs.fasta ]; then num_uniq=$(grep -c '>' $output/${sample}/unique_contigs.fasta); fi
+	num_xenos=0
+	if [ -f $output/${sample}/${xeno_filename}.fasta ]; then num_xenos=$(grep -c '>' $output/${sample}/${xeno_filename}.fasta); fi
+	if [ $link == "true" ]; then 
+		echo -e "[xenoseq_link     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${sample}. $num_xenos of these are xenotypic. ${NC}"
+	else 
+		echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)]${PRP} Found $num_uniq unique contigs in ${sample}. Skipping xenoseq_link (-l not set) ${NC}"
+	fi
+done
+
+
+
+echo -e "[xenoseq          $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq finished! :)${NC}"
+

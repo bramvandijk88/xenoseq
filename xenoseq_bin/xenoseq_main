@@ -1,0 +1,195 @@
+#!/bin/bash
+
+cores=4
+
+SCRIPT_PATH=`dirname "$0"`; SCRIPT_PATH=`eval "cd \"$SCRIPT_PATH\" && pwd"`
+
+source $SCRIPT_PATH/functions.sh; 		# Simple custom-made functions to manipulate fasta files
+
+ORANGE='\033[0;33m'     # WARNINGS
+RED='\033[0;31m'        # ERRORS
+GREEN='\033[0;32m'      # COMPLETION
+BLUE='\033[0;36m'       # FILES
+GREY='\033[0;90m'       # CMD message
+PRP='\033[0;35m'        # COSMETIC
+NC='\033[0m' # No Color
+
+
+metadata=""
+
+print_usage() {
+	  printf "Usage: ./xenoseq_find -s sample_name -m metafile -o output"
+}
+
+
+#OPTS
+output="Xenoseq_default"
+path_to_reads="samples/reads"
+read_suffix="_R*.fq"
+trace=false
+link=false
+force_relink=false
+metadata=""
+jobs=1
+cores=8
+blength=300
+verbal=false
+bpid=97
+xeno_filename="xenotypic_contigs"
+
+s="" # query index for find routine
+
+while [ $# -gt 0 ]; do
+	if [[ $1 =~ ^(-h|-help|--h|--help)$ ]] || [ -z "$1" ]; then
+		print_usage;
+		exit 1;
+	elif [[ $1 =~ ^(-m|--metadata)$ ]]; then
+		metadata=("$2")
+	elif [[ $1 =~ ^(-v|--verbal)$ ]]; then
+		verbal=true
+	elif [[ $1 =~ ^(-o|--output)$ ]]; then
+		output=("$2")
+	elif [[ $1 =~ ^(-t|--trace)$ ]]; then
+		trace=true
+	elif [[ $1 =~ ^(-l|--link)$ ]]; then
+		link=true
+	elif [[ $1 =~ ^(-s|--s)$ ]]; then
+		s=("$2")
+	elif [[ $1 =~ ^(-f|--force_relink)$ ]]; then
+		force_relink=true
+	elif [[ $1 =~ ^(-p|--path_to_reads)$ ]]; then
+		path_to_reads=("$2")
+	elif [[ $1 =~ ^(-r|--read_suffix)$ ]]; then
+		read_suffix=("$2")
+	elif [[ $1 =~ ^(-j|--jobs)$ ]]; then
+		jobs=("$2")
+	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
+		cores=("$2")
+	elif [[ $1 =~ ^(-L|--alignment_length)$ ]]; then
+		blength=("$2")
+	elif [[ $1 =~ ^(-P|--alignment_pid)$ ]]; then
+		bpid=("$2")
+	elif [[ $1 == *"-"* ]]; then
+		v="${1/-/}"
+		declare $v="$2"
+	fi
+	shift
+done
+
+
+parse_metadata $metadata
+
+############
+###### XENOSEQ_FIND
+############
+
+
+
+sample=${query_samples[$s]}
+
+echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Starting xenoseq_find for ${sample} ${NC}" 
+index=$output/${reference_samples[$s]}/assembly/final.contigs.fa
+reads=$output/${sample}/reads/merged_reads.fasta
+out="$output/${sample}/read_mapping/${sample}_to_${reference_samples[$s]}"
+mkdir -p $output/${sample}/read_mapping
+bwa_map $index $reads $out
+unmapped_to_fasta $out.sorted.bam ${reference_samples[$s]}
+assemble_mh $output/${sample}/reads/unique_reads.fasta 300 $output/${sample}/unique_assembly
+seqkit sort -l -r $output/${sample}/unique_assembly/final.contigs.fa > $output/${sample}/unique_contigs.fasta 2> $output/logs/seqkit.log
+
+echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq_find completed succesfully for ${sample} ${NC}" 
+
+############
+###### XENOSEQ_LINK
+############
+if [[ $link = "true" || $force_relink = "true" ]]; then
+		if [[ $force_relink = "true" ]]; then 
+			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
+		fi
+		for (( j=0; j<${#reference_samples[@]}; j++ )); do
+			if [ ! $j -eq $s ]; then 	# Check that you are not "linking" to yourself
+				if [ -s $output/${sample}/unique_contigs.fasta ]; then
+					index=$output/${reference_samples[$j]}/assembly/final.contigs.fa
+					link_contig $output/${sample}/unique_contigs.fasta $index $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.tbl
+				fi
+			fi
+		done
+		if ls $output/${sample}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
+			cat $output/${sample}/unique_contig_links_to_*.tbl > $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
+			rm -f $output/${sample}/unique_contig_links_to_*.tbl
+			cat $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl | cut -f1 > $output/${sample}/${xeno_filename}.txt
+			seqkit grep -f $output/${sample}/${xeno_filename}.txt $output/${sample}/unique_contigs.fasta -o $output/${sample}/${xeno_filename}.fasta 2> $output/logs/xenotypic.log
+		fi
+fi
+
+
+############
+###### Tracing across samples ######
+############ 
+
+if [ $trace == "true" ] ; then
+	echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 4) TRACING UNIQUE/XENOTYPIC SEQUENCES${NC}"	
+	if [ -f $output/${sample}/unique_contigs.fasta ]; then
+		echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing unique contigs from ${sample} across all samples." 
+		bwa_index $output/${sample}/unique_contigs.fasta
+		for (( j=0; j<${#query_samples[@]}; j++ )); do
+			index=$output/${sample}/unique_contigs.fasta
+			reads="$output/${query_samples[$j]}/reads/merged_reads.fasta"
+			out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_unique_from_${sample}"
+			bwa_map $index $reads $out
+			if [ ! -f ${out}_coverage.txt ]; then
+				samtools_coverage $out
+				sed -i "s/$/\t${query_samples[$j]}/" ${out}_coverage.txt
+				tail -n+2 ${out}_coverage.txt >> $output/${sample}/unique_coverage.txt
+			fi
+		done
+		for (( j=0; j<${#reference_samples[@]}; j++ )); do
+			index=$output/${sample}/unique_contigs.fasta			
+			if [ -s $output/${sample}/unique_contigs.fasta ]; then
+				reads="$output/${reference_samples[$j]}/reads/merged_reads.fasta"
+				out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_unique_from_${sample}"
+				bwa_map $index $reads $out
+				if [ ! -f ${out}_coverage.txt ]; then
+					samtools_coverage $out
+					sed -i "s/$/\t${reference_samples[$j]}/" ${out}_coverage.txt
+					tail -n+2 ${out}_coverage.txt >> $output/${sample}/unique_coverage.txt
+				fi
+			fi
+		done
+	rm -rf $output/${sample}/unique_contigs.fasta.*
+	sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${sample}/unique_coverage.txt
+	fi 
+
+	if [ -s $output/${sample}/${xeno_filename}.fasta ]; then
+		echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing xenotypic contigs from ${sample} across all samples." 
+		bwa_index $output/${sample}/${xeno_filename}.fasta
+		for (( j=0; j<${#query_samples[@]}; j++ )); do
+			index=$output/${sample}/${xeno_filename}.fasta
+			reads="$output/${query_samples[$j]}/reads/merged_reads.fasta"
+			out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_${xeno_filename}_from_${sample}"
+			bwa_map $index $reads $out
+			if [ ! -f ${out}_coverage.txt ]; then
+				samtools_coverage $out
+				sed -i "s/$/\t${query_samples[$j]}/" ${out}_coverage.txt
+				tail -n+2 ${out}_coverage.txt >> $output/${sample}/${xeno_filename}_coverage.txt
+			fi
+		done
+		for (( j=0; j<${#reference_samples[@]}; j++ )); do
+			index=$output/${sample}/${xeno_filename}.fasta			
+			if [ -s $output/${sample}/${xeno_filename}.fasta ]; then
+				reads="$output/${reference_samples[$j]}/reads/merged_reads.fasta"
+				out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_${xeno_filename}_from_${sample}"
+				bwa_map $index $reads $out
+				if [ ! -f ${out}_coverage.txt ]; then
+					samtools_coverage $out
+					sed -i "s/$/\t${reference_samples[$j]}/" ${out}_coverage.txt
+					tail -n+2 ${out}_coverage.txt >> $output/${sample}/${xeno_filename}_coverage.txt
+				fi
+			fi
+		done
+	rm -rf $output/${sample}/${xeno_filename}.fasta.*
+	sed -i "1i\contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" $output/${sample}/${xeno_filename}_coverage.txt
+	fi 	
+
+fi
+
