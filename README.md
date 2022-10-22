@@ -19,8 +19,8 @@ Xenoseq is a simple bioinformatic pipeline to find sequences that appear to be n
 introduced into a community. The input are (sets of) query and reference samples,
 which the pipeline will use to generate the following output:
 
-* unique_contigs.fasta; sequences in query not present in ancestral samples
-* unique_coverage.txt; text file to estimate abundance of unique sequences in non-ancestral samples
+* unique_contigs.fasta; sequences in query not present in reference (e.g. ancestral) samples
+* unique_coverage.txt; text file to estimate abundance of unique sequences in all other samples
 * unique_contig_all_links_L300_P97.tbl; table linking contigs to other communities using BLAST, with options L and P in the filename
 * xenotypic_contigs.txt; text file with names of all xenotypic contigs in them
 * xenotypic_contigs.fasta; the subset of unique contigs that can be linked to *another* reference using BLAST
@@ -99,7 +99,7 @@ To run the pipeline (e.g. on the example data), use one of the following command
 > ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l -t            # Full pipeline
 > ./xenoseq -m example_metadata.tsv -o Xenoseq_example                  # Only identify unique sequences
 > ./xenoseq -m example_metadata.tsv -o Xenoseq_example -t      		# Identify and trace unique sequences
-> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l -f -P 100     # Force a relinking of unique-xenotypic with stricter pid
+> ./xenoseq -m example_metadata.tsv -o Xenoseq_example -l -f -P 99.99   # Force a relinking of unique-xenotypic with stricter percent identity 
 ```
 
 This example will use mock reads found in samples/reads and will search for xenotypic contigs in simulated data. Your unique/xenotypic contigs will then be
@@ -128,15 +128,16 @@ Optional options:
 	--l/--force_relink		Link unique sequences to reference samples, even when this step is already performed."
         -t/--trace                      After detecting xenotypic contigs, trace them across all samples.
         -o/--output <STRING>            Output directory to put all the data
-	-j/--jobs			Number of jobs to run in parallel (assembly and trimming only)	
+	-j/--jobs			Number of jobs to run in parallel (jobs will be passed to GNU parallel)
         -c/--cores <INT>                Number of threads to use in multthreaded parts of the pipeline
 
 ```
 
-If you want to modify any of the options (e.g. filtering thresholds, quality trimming),
+If you want to modify any more options (e.g. filtering thresholds, quality trimming),
 you can modify the relevant subroutines of xenoseq given in xenoseq_bin/functions.sh.
-Generally, changing these options is not required.
+
 ```
+
 xenoseq -h
 
 Xenoseq was tested on MAC Monterey 12.5.1 and Ubuntu 20.04.3 (also available on as Windows subsystem)
