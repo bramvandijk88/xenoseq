@@ -4,7 +4,7 @@ cores=4
 
 SCRIPT_PATH=`dirname "$0"`; SCRIPT_PATH=`eval "cd \"$SCRIPT_PATH\" && pwd"`
 
-source $SCRIPT_PATH/functions.sh; 		# Simple custom-made functions to manipulate fasta files
+source $SCRIPT_PATH/xenoseq_functions; 		# Simple custom-made functions to manipulate fasta files
 
 ORANGE='\033[0;33m'     # WARNINGS
 RED='\033[0;31m'        # ERRORS
