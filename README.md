@@ -70,7 +70,6 @@ terminal, add the export PATH code to you ~/.bashrc
 ```
 echo export PATH='$PATH:~/xenoseq' >> ~/.bashrc
 ```
-Xenoseq was tested on MAC Monterey 12.5.1 and Ubuntu 20.04.3 (also available on as Windows subsystem)
 
 ## Metadata file
 
@@ -139,4 +138,7 @@ you can modify the relevant subroutines of xenoseq given in xenoseq_bin/function
 Generally, changing these options is not required.
 ```
 xenoseq -h
+
+Xenoseq was tested on MAC Monterey 12.5.1 and Ubuntu 20.04.3 (also available on as Windows subsystem)
+
 ```
