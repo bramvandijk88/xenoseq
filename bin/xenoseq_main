@@ -137,25 +137,27 @@ if [ $trace == "true" ] ; then
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
 				samtools_coverage $out
-				sed -i "s/$/	${query_samples[$j]}/" ${out}_coverage.txt
-				tail -n+2 ${out}_coverage.txt >> $output/${sample}/unique_coverage.txt
 			fi
+			awk -v sample=${query_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
+			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/unique_contigs_coverage.tmp
 		done
-		for (( j=0; j<${#reference_samples[@]}; j++ )); do
+		ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			index=$output/${sample}/unique_contigs.fasta			
-			if [ -s $output/${sample}/unique_contigs.fasta ]; then
-				reads="$output/${reference_samples[$j]}/reads/merged_reads.fasta"
-				out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_unique_from_${sample}"
-				bwa_map $index $reads $out
-				if [ ! -f ${out}_coverage.txt ]; then
-					samtools_coverage $out
-					sed -i "s/$/	${reference_samples[$j]}/" ${out}_coverage.txt
-					tail -n+2 ${out}_coverage.txt >> $output/${sample}/unique_coverage.txt
-				fi
+			reads="$output/${ureference_samples[$j]}/reads/merged_reads.fasta"
+			out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_unique_from_${sample}"
+			bwa_map $index $reads $out
+			if [ ! -f ${out}_coverage.txt ]; then
+				samtools_coverage $out
 			fi
+			awk -v sample=${ureference_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
+			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/unique_contigs_coverage.tmp
 		done
+
 	rm -rf $output/${sample}/unique_contigs.fasta.*
-	sed -i "1i contig	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq	sample" $output/${sample}/unique_coverage.txt
+	echo -e "contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" > $output/${sample}/unique_contigs_coverage.txt
+	cat $output/${sample}/unique_contigs_coverage.tmp >> $output/${sample}/unique_contigs_coverage.txt
+	rm -rf $output/${sample}/unique_contigs_coverage.tmp
 	fi 
 
 	if [ -s $output/${sample}/${xeno_filename}.fasta ]; then
@@ -168,25 +170,27 @@ if [ $trace == "true" ] ; then
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
 				samtools_coverage $out
-				sed -i "s/$/	${query_samples[$j]}/" ${out}_coverage.txt
-				tail -n+2 ${out}_coverage.txt >> $output/${sample}/${xeno_filename}_coverage.txt
 			fi
+			awk -v sample=${query_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
+			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/${xeno_filename}_coverage.tmp
 		done
-		for (( j=0; j<${#reference_samples[@]}; j++ )); do
+
+		ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			index=$output/${sample}/${xeno_filename}.fasta			
-			if [ -s $output/${sample}/${xeno_filename}.fasta ]; then
-				reads="$output/${reference_samples[$j]}/reads/merged_reads.fasta"
-				out="$output/${reference_samples[$j]}/read_mapping/${reference_samples[$j]}_to_${xeno_filename}_from_${sample}"
-				bwa_map $index $reads $out
-				if [ ! -f ${out}_coverage.txt ]; then
-					samtools_coverage $out
-					sed -i "s/$/	${reference_samples[$j]}/" ${out}_coverage.txt
-					tail -n+2 ${out}_coverage.txt >> $output/${sample}/${xeno_filename}_coverage.txt
-				fi
+			reads="$output/${ureference_samples[$j]}/reads/merged_reads.fasta"
+			out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_${xeno_filename}_from_${sample}"
+			bwa_map $index $reads $out
+			if [ ! -f ${out}_coverage.txt ]; then
+				samtools_coverage $out
 			fi
+			awk -v sample=${ureference_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
+			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/${xeno_filename}_coverage.tmp
 		done
 	rm -rf $output/${sample}/${xeno_filename}.fasta.*
-	sed -i "1i contig	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq	sample" $output/${sample}/${xeno_filename}_coverage.txt
+	echo -e "contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" > $output/${sample}/${xeno_filename}_coverage.txt
+	cat $output/${sample}/${xeno_filename}_coverage.tmp >> $output/${sample}/${xeno_filename}_coverage.txt
+	rm -rf mv $output/${sample}/${xeno_filename}_coverage.tmp 
 	fi 	
 
 fi

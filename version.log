@@ -8,3 +8,5 @@
 ---------------------------------------------------------------------------
 1.0.0       Full version of the pipeline that applies all steps described in publication. 
 ---------------------------------------------------------------------------
+1.1.0       Full support for parallel processing using the GNU parallel module
+---------------------------------------------------------------------------
