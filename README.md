@@ -60,7 +60,7 @@ export PATH='$PATH:<XENOSEQ_DIR>'
 e.g. if you cloned / downloaded xenoseq into your home dir:
 
 ```
-export PATH='$PATH:~/XENOSEQ_DIR'
+export PATH='$PATH:~/xenoseq'
 ```
 
 If you don't want to do this each time you login to a new
@@ -68,8 +68,9 @@ terminal, add the export PATH code to you ~/.bashrc
 (or ~/.profile) file:
 
 ```
-echo export PATH='$PATH:~/<XENOSEQ_DIR>' >> ~/.bashrc
+echo export PATH='$PATH:~/xenoseq' >> ~/.bashrc
 ```
+Xenoseq was tested on MAC Monterey 12.5.1 and Ubuntu 20.04.3 (also available on as Windows subsystem)
 
 ## Metadata file
 
