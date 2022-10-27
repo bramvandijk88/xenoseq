@@ -32,21 +32,6 @@ echo -e "----------------------------------------------------------------------"
 echo -e "                          (XENOSEQ v${version})                            "
 echo -e "----------------------------------------------------------------------\n"
 
-#OPTS
-output="Xenoseq_default"
-path_to_reads="samples/reads"
-read_suffix="_R*.fq"
-trace=false
-link=false
-force_relink=false
-metadata=""
-jobs=4
-cores=4
-max_assembly_jobs=4
-assembly_cores=4
-blength=300
-bpid=97
-xeno_filename="xenotypic_contigs"
 
 print_usage() {
 	echo -e "xenoseq v${version}\n"
@@ -77,11 +62,11 @@ trace=false
 link=false
 force_relink=false
 metadata=""
-jobs=1
-cores=8
+jobs=4
+cores=4
 blength=300
 verbal=false
-bpid=97
+bpid=99
 xeno_filename="xenotypic_contigs"
 
 command=""
