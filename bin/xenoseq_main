@@ -154,10 +154,10 @@ if [ $trace == "true" ] ; then
 			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/unique_contigs_coverage.tmp
 		done
 
-	rm -rf $output/${sample}/unique_contigs.fasta.*
-	echo -e "contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" > $output/${sample}/unique_contigs_coverage.txt
-	cat $output/${sample}/unique_contigs_coverage.tmp >> $output/${sample}/unique_contigs_coverage.txt
-	rm -rf $output/${sample}/unique_contigs_coverage.tmp
+		rm -rf $output/${sample}/unique_contigs.fasta.*
+		echo -e "contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" > $output/${sample}/unique_contigs_coverage.txt
+		cat $output/${sample}/unique_contigs_coverage.tmp >> $output/${sample}/unique_contigs_coverage.txt
+		rm -rf $output/${sample}/unique_contigs_coverage.tmp
 	fi 
 	
 	if [[ -s $output/${sample}/${xeno_filename}.fasta ]] ; then
@@ -187,11 +187,10 @@ if [ $trace == "true" ] ; then
 			awk -v sample=${ureference_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
 			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/${xeno_filename}_coverage.tmp
 		done
-	rm -rf $output/${sample}/${xeno_filename}.fasta.*
-	echo -e "contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" > $output/${sample}/${xeno_filename}_coverage.txt
-	cat $output/${sample}/${xeno_filename}_coverage.tmp >> $output/${sample}/${xeno_filename}_coverage.txt
-	rm -rf mv $output/${sample}/${xeno_filename}_coverage.tmp 
+		rm -rf $output/${sample}/${xeno_filename}.fasta.*
+		echo -e "contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" > $output/${sample}/${xeno_filename}_coverage.txt
+		cat $output/${sample}/${xeno_filename}_coverage.tmp >> $output/${sample}/${xeno_filename}_coverage.txt
+		rm -rf mv $output/${sample}/${xeno_filename}_coverage.tmp 
 	fi 	
-
 fi
 
