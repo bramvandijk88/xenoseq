@@ -88,7 +88,7 @@ sample=${query_samples[$s]}
 
 echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Starting xenoseq_find for ${sample} ${NC}" 
 index=$output/${reference_samples[$s]}/assembly/final.contigs.fa
-reads=$output/${sample}/reads/merged_reads.fasta
+reads=$output/${sample}/reads/prepped_reads.fasta
 out="$output/${sample}/read_mapping/${sample}_to_${reference_samples[$s]}"
 mkdir -p $output/${sample}/read_mapping
 bwa_map $index $reads $out
@@ -109,7 +109,7 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 			if [ ! $j -eq $s ]; then 	# Check that you are not "linking" to yourself
 				if [ -s $output/${sample}/unique_contigs.fasta ]; then
 					index=$output/${reference_samples[$j]}/assembly/final.contigs.fa
-					link_contig $output/${sample}/unique_contigs.fasta $index $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.tbl
+					link_contig $output/${sample}/unique_contigs.fasta $index $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.tbl ${reference_samples[$j]}
 				fi
 			fi
 		done
@@ -127,12 +127,12 @@ fi
 ############ 
 
 if [ $trace == "true" ] ; then
-	if [ -f $output/${sample}/unique_contigs.fasta ]; then
+	if [[ -s $output/${sample}/unique_contigs.fasta ]] ; then
 		echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing unique contigs from ${sample} across all samples." 
 		bwa_index $output/${sample}/unique_contigs.fasta
 		for (( j=0; j<${#query_samples[@]}; j++ )); do
 			index=$output/${sample}/unique_contigs.fasta
-			reads="$output/${query_samples[$j]}/reads/merged_reads.fasta"
+			reads="$output/${query_samples[$j]}/reads/prepped_reads.fasta"
 			out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_unique_from_${sample}"
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
@@ -144,7 +144,7 @@ if [ $trace == "true" ] ; then
 		ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			index=$output/${sample}/unique_contigs.fasta			
-			reads="$output/${ureference_samples[$j]}/reads/merged_reads.fasta"
+			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fasta"
 			out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_unique_from_${sample}"
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
@@ -159,13 +159,13 @@ if [ $trace == "true" ] ; then
 	cat $output/${sample}/unique_contigs_coverage.tmp >> $output/${sample}/unique_contigs_coverage.txt
 	rm -rf $output/${sample}/unique_contigs_coverage.tmp
 	fi 
-
-	if [ -s $output/${sample}/${xeno_filename}.fasta ]; then
+	
+	if [[ -s $output/${sample}/${xeno_filename}.fasta ]] ; then
 		echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing xenotypic contigs from ${sample} across all samples." 
 		bwa_index $output/${sample}/${xeno_filename}.fasta
 		for (( j=0; j<${#query_samples[@]}; j++ )); do
 			index=$output/${sample}/${xeno_filename}.fasta
-			reads="$output/${query_samples[$j]}/reads/merged_reads.fasta"
+			reads="$output/${query_samples[$j]}/reads/prepped_reads.fasta"
 			out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_${xeno_filename}_from_${sample}"
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
@@ -178,7 +178,7 @@ if [ $trace == "true" ] ; then
 		ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			index=$output/${sample}/${xeno_filename}.fasta			
-			reads="$output/${ureference_samples[$j]}/reads/merged_reads.fasta"
+			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fasta"
 			out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_${xeno_filename}_from_${sample}"
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
