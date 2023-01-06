@@ -10,3 +10,6 @@
 ---------------------------------------------------------------------------
 1.1.0       Full support for parallel processing using the GNU parallel module
 ---------------------------------------------------------------------------
+1.2.0       Added support for single-end reads
+---------------------------------------------------------------------------
+1.2.1	    Included a new type of output in the reference samples called "source_contigs", which are the fully-assembled contigs which are (part of) a mobile element

@@ -83,14 +83,14 @@ parse_metadata $metadata
 ############
 
 
-
 sample=${query_samples[$s]}
 
 echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Starting xenoseq_find for ${sample} ${NC}" 
 index=$output/${reference_samples[$s]}/assembly/final.contigs.fa
-reads=$output/${sample}/reads/prepped_reads.fasta
+reads=$output/${sample}/reads/prepped_reads.fastq
 out="$output/${sample}/read_mapping/${sample}_to_${reference_samples[$s]}"
 mkdir -p $output/${sample}/read_mapping
+mkdir -p $output/${reference_samples[$s]}/source_contigs
 bwa_map $index $reads $out
 unmapped_to_fasta $out.sorted.bam ${reference_samples[$s]}
 assemble_mh $output/${sample}/reads/unique_reads.fasta 300 $output/${sample}/unique_assembly
@@ -110,12 +110,15 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 				if [ -s $output/${sample}/unique_contigs.fasta ]; then
 					index=$output/${reference_samples[$j]}/assembly/final.contigs.fa
 					link_contig $output/${sample}/unique_contigs.fasta $index $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.tbl ${reference_samples[$j]}
+					cat $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.tbl | cut -f 3 > $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.names
+					seqkit grep -f $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.names $output/${reference_samples[$j]}/assembly/final.contigs.fa 2> $output/logs/xenotypic.log >> $output/${reference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fasta
 				fi
 			fi
 		done
 		if ls $output/${sample}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
 			cat $output/${sample}/unique_contig_links_to_*.tbl > $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
 			rm -f $output/${sample}/unique_contig_links_to_*.tbl
+			rm -f $output/${sample}/unique_contig_links_to_*.names
 			cat $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl | cut -f1 > $output/${sample}/${xeno_filename}.txt
 			seqkit grep -f $output/${sample}/${xeno_filename}.txt $output/${sample}/unique_contigs.fasta -o $output/${sample}/${xeno_filename}.fasta 2> $output/logs/xenotypic.log
 		fi
@@ -132,7 +135,7 @@ if [ $trace == "true" ] ; then
 		bwa_index $output/${sample}/unique_contigs.fasta
 		for (( j=0; j<${#query_samples[@]}; j++ )); do
 			index=$output/${sample}/unique_contigs.fasta
-			reads="$output/${query_samples[$j]}/reads/prepped_reads.fasta"
+			reads="$output/${query_samples[$j]}/reads/prepped_reads.fastq"
 			out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_unique_from_${sample}"
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
@@ -144,7 +147,7 @@ if [ $trace == "true" ] ; then
 		ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			index=$output/${sample}/unique_contigs.fasta			
-			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fasta"
+			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fastq"
 			out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_unique_from_${sample}"
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
@@ -165,7 +168,7 @@ if [ $trace == "true" ] ; then
 		bwa_index $output/${sample}/${xeno_filename}.fasta
 		for (( j=0; j<${#query_samples[@]}; j++ )); do
 			index=$output/${sample}/${xeno_filename}.fasta
-			reads="$output/${query_samples[$j]}/reads/prepped_reads.fasta"
+			reads="$output/${query_samples[$j]}/reads/prepped_reads.fastq"
 			out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_${xeno_filename}_from_${sample}"
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then
@@ -178,7 +181,7 @@ if [ $trace == "true" ] ; then
 		ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			index=$output/${sample}/${xeno_filename}.fasta			
-			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fasta"
+			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fastq"
 			out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_${xeno_filename}_from_${sample}"
 			bwa_map $index $reads $out
 			if [ ! -f ${out}_coverage.txt ]; then

@@ -14,7 +14,7 @@ PRP='\033[0;35m'	# COSMETIC
 GREY='\033[0;90m'	# CMD message
 NC='\033[0m' # No Color
 
-version="1.1.0"         # Major overhaul to suppor parallel processing
+version="1.2.0"         # Major overhaul to suppor parallel processing
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
@@ -41,7 +41,7 @@ print_usage() {
 	-m/--metadata\t\tFile containing the metadata (tsv file with query-reference sets)
 Optional options:
 	-p/--path_to_reads <STRING> \tPath to reads for samples in metadata (default = $path_to_reads)
-	-r/--read_suffix <STRING> \tRead suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq) (default = ${read_suffix})
+	-r/--read_suffix <STRING> \tRead suffix corresponding to metadata n ames (e.g. when read filenames are Sample1_R1.fq and Sample1_R2.fq, use _R*.fq) (default = ${read_suffix})
 	-l/--link\t\t\tAfter detecting unique contigs, attempt to link them to other reference samples.
 	-t/--trace\t\t\tAfter detecting xenotypic contigs, trace them across all samples.
 	-c/--cores <INT>\t\tNumber of CPUs to use for smaller tasks (passed on to bwa, samtools, etc.) (default = ${cores})
@@ -50,6 +50,7 @@ Optional options:
 	-J/--max_assembly_jobs  <INT>\tMaximum number of parallel jobs for assembly (default = $max_assembly_jobs)
 	-o/--output <STRING>\t\tOutput directory to put all the data
 	-L/--alignment_length\t\tMinimal alignment length to link unique sequences to other reference samples.
+	-S/--single_end <STRING> \tAssume single-end reads (e.g. use only Sample1_R1.fq and skip read merging) 
 	-P/--alignment_pid\t\tMinimal percent identity to link unique sequences to other reference samples.
 	-f/--force_relink\t\tLink unique sequences to reference samples, even when this step is already performed.\n"
 }
@@ -60,6 +61,7 @@ path_to_reads="samples/reads"
 read_suffix="_R*.fq"
 trace=false
 link=false
+single=false
 force_relink=false
 metadata=""
 jobs=4
@@ -84,6 +86,8 @@ while [ $# -gt 0 ]; do
 		output=("$2")
 	elif [[ $1 =~ ^(-t|--trace)$ ]]; then
 		trace=true
+	elif [[ $1 =~ ^(-S|--single_end)$ ]]; then
+		single=true
 	elif [[ $1 =~ ^(-l|--link)$ ]]; then
 		link=true
 	elif [[ $1 =~ ^(-c|--cores)$ ]]; then
@@ -130,6 +134,7 @@ elif [[ ! -f $metadata ]]; then
 fi
 parse_metadata $metadata
 
+if [[ "$single" == true ]]; then echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${ORANGE}Note: option -S was set. Assuming single-end reads${NC}\n"; fi
 echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if query-reads exist with suffix ${BLUE}\"${read_suffix}\"${NC} in path ${BLUE}\"${path_to_reads}\"${NC}"
 for (( i=0; i<${#query_samples[@]}; i++ )); do
 	for file in ${path_to_reads}/${query_samples[$i]}${read_suffix}; do
@@ -166,27 +171,34 @@ for (( i=0; i<${#reference_samples[@]}; i++ )); do
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating xenoseq_prep jobs for reference ${reference_samples[$i]}" 
 
 	r1=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | head -n 1)
-	r2=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | tail -n 1)
+	r2=""
+	if [ "$single" = false ]; then 
+		r2="-r2 "
+		r2+="$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | tail -n 1)" 
+	fi
 	mkdir -p $output/${reference_samples[$i]}/reads
 	mkdir -p $output/${reference_samples[$i]}/read_mapping
 	mkdir -p $output/${reference_samples[$i]}/logs
 
-	prep_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $output/${reference_samples[$i]} \n"	
+	prep_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_prep -r1 $r1 $r2 -c $cores -o $output/${reference_samples[$i]} \n"	
 done
 
 for (( i=0; i<${#query_samples[@]}; i++ )); do
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating xenoseq_prep jobs for query ${query_samples[$i]}" 
 
 	r1=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | head -n 1)
-	r2=$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | tail -n 1)
+	r2=""
+	if [ "$single" = false ]; then 
+		r2="-r2 "
+		r2+="$(ls ${path_to_reads}/${query_samples[$i]}${read_suffix} | tail -n 1)" 
+	fi
 	mkdir -p $output/${query_samples[$i]}/reads
 	mkdir -p $output/${query_samples[$i]}/read_mapping
 	mkdir -p $output/${query_samples[$i]}/logs
 
-	prep_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $output/${query_samples[$i]} \n"
+	prep_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_prep -r1 $r1 $r2 -c $cores -o $output/${query_samples[$i]} \n"
 done
 
-#echo -en $prep_jobs
 echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Running all preparation jobs in parallel ($jobs jobs at a time)" 
 echo -en $prep_jobs | sort | uniq | parallel -j $jobs --will-cite
 
@@ -206,6 +218,8 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
 	main_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_main -s $i ${cmd_args[@]} \n "	
 done
+
+echo -en $main_jobs
 
 echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Running all xenoseq jobs (find, link, trace) in parallel ($jobs jobs at a time)" 
 echo -en $main_jobs | sort | uniq | parallel -j $jobs --will-cite
