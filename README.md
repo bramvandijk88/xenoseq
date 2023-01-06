@@ -25,6 +25,7 @@ which the pipeline will use to generate the following output:
 * xenotypic_contigs.txt; text file with names of all xenotypic contigs in them
 * xenotypic_contigs.fasta; the subset of unique contigs that can be linked to *another* reference using BLAST
 * xenotypic_coverage.txt; text files to estimate the abundance of xenotypic sequences in non-ancestral samples
+* source_contigs; fasta files from reference samples that are themselves / are linked to MGEs
 
 ## Overview
 Xenoseq wraps read trimming (fastp), assembly (megahit), read mapping (BWA), read filtering (samtools), and local alignment (blast), to detect putative evidence
