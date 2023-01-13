@@ -98,6 +98,9 @@ seqkit sort -l -r $output/${sample}/unique_assembly/final.contigs.fa > $output/$
 
 echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq_find completed succesfully for ${sample} ${NC}" 
 
+# List unique reference samples (may have duplicates in it)
+ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
 ############
 ###### XENOSEQ_LINK
 ############
@@ -105,13 +108,15 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 		if [[ $force_relink = "true" ]]; then 
 			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
 		fi
-		for (( j=0; j<${#reference_samples[@]}; j++ )); do
+		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			if [ ! $j -eq $s ]; then 	# Check that you are not "linking" to yourself
 				if [ -s $output/${sample}/unique_contigs.fasta ]; then
-					index=$output/${reference_samples[$j]}/assembly/final.contigs.fa
-					link_contig $output/${sample}/unique_contigs.fasta $index $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.tbl ${reference_samples[$j]}
-					cat $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.tbl | cut -f 3 > $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.names
-					seqkit grep -f $output/${sample}/unique_contig_links_to_${reference_samples[$j]}.names $output/${reference_samples[$j]}/assembly/final.contigs.fa 2> $output/logs/xenotypic.log >> $output/${reference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fasta
+					index=$output/${ureference_samples[$j]}/assembly/final.contigs.fa
+					link_contig $output/${sample}/unique_contigs.fasta $index $output/${sample}/unique_contig_links_to_${ureference_samples[$j]}.tbl ${ureference_samples[$j]}
+					cat $output/${sample}/unique_contig_links_to_${ureference_samples[$j]}.tbl | cut -f 3 > $output/${sample}/unique_contig_links_to_${ureference_samples[$j]}.names
+					seqkit grep -f $output/${sample}/unique_contig_links_to_${ureference_samples[$j]}.names $output/${ureference_samples[$j]}/assembly/final.contigs.fa 2> $output/logs/xenotypic.log > $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fa
+					#seqkit rmdup -n $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fa -o $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fasta
+					rm $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fa
 				fi
 			fi
 		done
@@ -130,8 +135,6 @@ fi
 ############ 
 
 if [ $trace == "true" ] ; then
-	# List unique reference samples (may have duplicates in it)
-	ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 		
 	# TRACING XENOTYPIC CONTIGS
 	if [[ -s $output/${sample}/${xeno_filename}.fasta ]] ; then
