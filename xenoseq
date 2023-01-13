@@ -219,7 +219,6 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	main_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_main -s $i ${cmd_args[@]} \n "	
 done
 
-echo -en $main_jobs
 
 echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Running all xenoseq jobs (find, link, trace) in parallel ($jobs jobs at a time)" 
 echo -en $main_jobs | sort | uniq | parallel -j $jobs --will-cite
@@ -229,6 +228,7 @@ echo -e "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq completed 
 if [[ $force_relink = "true" ]]; then 
 	xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
 fi
+
 
 for (( i=0; i<${#query_samples[@]}; i++ )); do
 	sample=${query_samples[$i]}

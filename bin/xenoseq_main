@@ -130,39 +130,10 @@ fi
 ############ 
 
 if [ $trace == "true" ] ; then
-	if [[ -s $output/${sample}/unique_contigs.fasta ]] ; then
-		echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing unique contigs from ${sample} across all samples." 
-		bwa_index $output/${sample}/unique_contigs.fasta
-		for (( j=0; j<${#query_samples[@]}; j++ )); do
-			index=$output/${sample}/unique_contigs.fasta
-			reads="$output/${query_samples[$j]}/reads/prepped_reads.fastq"
-			out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_unique_from_${sample}"
-			bwa_map $index $reads $out
-			if [ ! -f ${out}_coverage.txt ]; then
-				samtools_coverage $out
-			fi
-			awk -v sample=${query_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
-			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/unique_contigs_coverage.tmp
-		done
-		ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
-			index=$output/${sample}/unique_contigs.fasta			
-			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fastq"
-			out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_unique_from_${sample}"
-			bwa_map $index $reads $out
-			if [ ! -f ${out}_coverage.txt ]; then
-				samtools_coverage $out
-			fi
-			awk -v sample=${ureference_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
-			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/unique_contigs_coverage.tmp
-		done
-
-		rm -rf $output/${sample}/unique_contigs.fasta.*
-		echo -e "contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" > $output/${sample}/unique_contigs_coverage.txt
-		cat $output/${sample}/unique_contigs_coverage.tmp >> $output/${sample}/unique_contigs_coverage.txt
-		rm -rf $output/${sample}/unique_contigs_coverage.tmp
-	fi 
-	
+	# List unique reference samples (may have duplicates in it)
+	ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+		
+	# TRACING XENOTYPIC CONTIGS
 	if [[ -s $output/${sample}/${xeno_filename}.fasta ]] ; then
 		echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing xenotypic contigs from ${sample} across all samples." 
 		bwa_index $output/${sample}/${xeno_filename}.fasta
@@ -178,7 +149,6 @@ if [ $trace == "true" ] ; then
 			tail -n+2 ${out}_coverage.tmp >> $output/${sample}/${xeno_filename}_coverage.tmp
 		done
 
-		ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			index=$output/${sample}/${xeno_filename}.fasta			
 			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fastq"
@@ -195,5 +165,38 @@ if [ $trace == "true" ] ; then
 		cat $output/${sample}/${xeno_filename}_coverage.tmp >> $output/${sample}/${xeno_filename}_coverage.txt
 		rm -rf mv $output/${sample}/${xeno_filename}_coverage.tmp 
 	fi 	
+	
+	#if [[ -s $output/${sample}/unique_contigs.fasta ]] ; then
+	#	echo -e "\n[xenoseq_trace    $(date +%d-%m_%H:%M:%S)] Tracing unique contigs from ${sample} across all samples." 
+	#	bwa_index $output/${sample}/unique_contigs.fasta
+	#	for (( j=0; j<${#query_samples[@]}; j++ )); do
+	#		index=$output/${sample}/unique_contigs.fasta
+	#		reads="$output/${query_samples[$j]}/reads/prepped_reads.fastq"
+	#		out="$output/${query_samples[$j]}/read_mapping/${query_samples[$j]}_to_unique_from_${sample}"
+	#		bwa_map $index $reads $out
+	#		if [ ! -f ${out}_coverage.txt ]; then
+	#			samtools_coverage $out
+	#		fi
+	#		awk -v sample=${query_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
+	#		tail -n+2 ${out}_coverage.tmp >> $output/${sample}/unique_contigs_coverage.tmp
+	#	done
+	#	ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+	#	for (( j=0; j<${#ureference_samples[@]}; j++ )); do
+	#		index=$output/${sample}/unique_contigs.fasta			
+	#		reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fastq"
+	#		out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_unique_from_${sample}"
+	#		bwa_map $index $reads $out
+	#		if [ ! -f ${out}_coverage.txt ]; then
+	#			samtools_coverage $out
+	#		fi
+	#		awk -v sample=${ureference_samples[$j]} '{print $0,sample}' ${out}_coverage.txt > ${out}_coverage.tmp
+	#		tail -n+2 ${out}_coverage.tmp >> $output/${sample}/unique_contigs_coverage.tmp
+	#	done
+	#
+	#	rm -rf $output/${sample}/unique_contigs.fasta.*
+	#	echo -e "contig\tstartpos\tendpos\tnumreads\tcovbases\tcoverage\tmeandepth\tmeanbaseq\tmeanmapq\tsample" > $output/${sample}/unique_contigs_coverage.txt
+	#	cat $output/${sample}/unique_contigs_coverage.tmp >> $output/${sample}/unique_contigs_coverage.txt
+	#	rm -rf $output/${sample}/unique_contigs_coverage.tmp
+	#fi 
 fi
 
