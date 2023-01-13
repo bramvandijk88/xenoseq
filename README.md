@@ -121,16 +121,19 @@ Usage:
 Mandatory:
         -m/--metadata           File containing the metadata (tsv file with query-reference sets)
 Optional options:
-        -p/--path_to_reads <STRING>     Path to reads for samples in metadata
-        -r/--read_suffix <STRING>       Read suffix for paired files in metadata (e.g. _R*.fq for using _R1.fq and _R2.fq)
+        -p/--path_to_reads <STRING>     Path to reads for samples in metadata (default = samples/reads)
+        -r/--read_suffix <STRING>       Read suffix corresponding to metadata n ames (e.g. when read filenames are Sample1_R1.fq and Sample1_R2.fq, use _R*.fq) (default = _R*.fq)
         -l/--link                       After detecting unique contigs, attempt to link them to other reference samples.
-        -L/--alignment_length <INT>     Minimal alignment length to link unique sequences to other reference samples. (default 300, requires -l)
-        -P/--alignment_pid <INT>        Minimal percent identity to link unique sequences to other reference samples. (default 97, requires -l)
-	--l/--force_relink		Link unique sequences to reference samples, even when this step is already performed."
         -t/--trace                      After detecting xenotypic contigs, trace them across all samples.
+        -c/--cores <INT>                Number of CPUs to use for smaller tasks (passed on to bwa, samtools, etc.) (default = 4)
+        -C/--assembly_cores <INT>               Number of CPUs to use for assembly (megahit) (default = 4)
+        -j/--jobs  <INT>                Maximum number of parallel jobs (default = 4)
+        -J/--max_assembly_jobs  <INT>   Maximum number of parallel jobs for assembly (default = )
         -o/--output <STRING>            Output directory to put all the data
-	-j/--jobs			Number of jobs to run in parallel (jobs will be passed to GNU parallel)
-        -c/--cores <INT>                Number of threads to use in multthreaded parts of the pipeline
+        -L/--alignment_length           Minimal alignment length to link unique sequences to other reference samples.
+        -S/--single_end <STRING>        Assume single-end reads (e.g. use only Sample1_R1.fq and skip read merging)
+        -P/--alignment_pid              Minimal percent identity to link unique sequences to other reference samples.
+        -f/--force_relink               Link unique sequences to reference samples, even when this step is already performed.
 
 ```
 
