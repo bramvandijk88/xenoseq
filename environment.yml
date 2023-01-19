@@ -8,7 +8,6 @@ dependencies:
   - seqkit
   - megahit=1.2.9
   - parallel
-  - nproc
   - fastp
   - bwa
   - samtools

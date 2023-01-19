@@ -115,11 +115,6 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-max_load=$(( $jobs * $cores ));
-nproc=$(nproc --all)
-if [ "$max_load" -gt "$nproc" ]; then
-	echo -e "[${RED}xenoseq_warn${NC}     $(date +%d-%m_%H:%M:%S)] ${RED}the max cpus in use ($max_load) exceeds the number of cpus on this machine (${nproc}). Hoping for the best ¯\\\_(\ツ)_/¯${NC}"
-fi;
 ############
 ###### Parsing meta data ######
 ############
@@ -136,7 +131,9 @@ parse_metadata $metadata
 
 if [[ "$single" == true ]]; then echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${ORANGE}Note: option -S was set. Assuming single-end reads${NC}\n"; fi
 echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if query-reads exist with suffix ${BLUE}\"${read_suffix}\"${NC} in path ${BLUE}\"${path_to_reads}\"${NC}"
+echo ""
 for (( i=0; i<${#query_samples[@]}; i++ )); do
+	#echo ${path_to_reads}/${query_samples[$i]}${read_suffix}
 	for file in ${path_to_reads}/${query_samples[$i]}${read_suffix}; do
 		if [ ! -f $file ]; then
 			echo -en "\t[ERROR]\n\nReads for \"${query_samples[$i]}\" not found at ${BLUE}${path_to_reads}${NC}/${query_samples[$i]}${BLUE}${read_suffix}${NC}. Try setting the correct path (-p) and suffix (-r) to locate your reads \n\n"
@@ -146,7 +143,9 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 done
 echo -e "\t${GREEN}[OK]${NC}"
 echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if subject-reads exist with suffix ${BLUE}\"$read_suffix\"${NC} in path ${BLUE}\"${path_to_reads}\"${NC}"
+echo ""
 for (( i=0; i<${#reference_samples[@]}; i++ )); do
+	#echo ${path_to_reads}/${reference_samples[$i]}${read_suffix}
 	for file in ${path_to_reads}/${reference_samples[$i]}${read_suffix}; do
 		if [ ! -f $file ]; then
 			echo -en "\t[ERROR]\n\nReads for \"${reference_samples[$i]}\" not found at ${BLUE}${path_to_reads}${NC}/${reference_samples[$i]}${BLUE}${read_suffix}${NC}. Try setting the correct path (-p) and suffix (-r) to locate your reads \n\n"
