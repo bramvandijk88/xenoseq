@@ -1,4 +1,4 @@
-name: xenoseq2
+name: xenoseq
 channels:
   - bioconda
   - default
