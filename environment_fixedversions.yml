@@ -1,0 +1,13 @@
+name: xenoseq_fixed
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - blast=2.13.0=hf3cf87c_0
+  - bwa=0.7.17=h7132678_9
+  - fastp=0.23.2=hb7a2d85_2
+  - megahit=1.2.9=h2e03b76_1
+  - samtools=1.15.1=h1170115_0
+  - seqkit=2.3.0=h9ee0642_0
+  - conda-forge::ncurses
