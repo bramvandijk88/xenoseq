@@ -20,12 +20,11 @@ introduced into a community. The input are (sets of) query and reference samples
 which the pipeline will use to generate the following output:
 
 * unique_contigs.fasta; sequences in query not present in reference (e.g. ancestral) samples
-* unique_coverage.txt; text file to estimate abundance of unique sequences in all other samples
 * unique_contig_all_links_L300_P97.tbl; table linking contigs to other communities using BLAST, with options L and P in the filename
 * xenotypic_contigs.txt; text file with names of all xenotypic contigs in them
 * xenotypic_contigs.fasta; the subset of unique contigs that can be linked to *another* reference using BLAST
 * xenotypic_coverage.txt; text files to estimate the abundance of xenotypic sequences in non-ancestral samples
-* source_contigs; fasta files from reference samples that are themselves / are linked to MGEs
+* source_contigs; directory with fasta files from reference samples that are themselves / are linked to MGEs
 
 ## Overview
 Xenoseq wraps read trimming (fastp), assembly (megahit), read mapping (BWA), read filtering (samtools), and local alignment (blast), to detect putative evidence
