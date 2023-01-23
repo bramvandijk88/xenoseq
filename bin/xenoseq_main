@@ -115,8 +115,7 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 					link_contig $output/${sample}/unique_contigs.fasta $index $output/${sample}/unique_contig_links_to_${ureference_samples[$j]}.tbl ${ureference_samples[$j]}
 					cat $output/${sample}/unique_contig_links_to_${ureference_samples[$j]}.tbl | cut -f 3 > $output/${sample}/unique_contig_links_to_${ureference_samples[$j]}.names
 					seqkit grep -f $output/${sample}/unique_contig_links_to_${ureference_samples[$j]}.names $output/${ureference_samples[$j]}/assembly/final.contigs.fa 2> $output/logs/xenotypic.log > $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fa
-					#seqkit rmdup -n $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fa -o $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fasta
-					rm $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fa
+					#rm $output/${ureference_samples[$j]}/source_contigs/contigs_linked_to_${sample}.fa
 				fi
 			fi
 		done
