@@ -131,7 +131,6 @@ parse_metadata $metadata
 
 if [[ "$single" == true ]]; then echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${ORANGE}Note: option -S was set. Assuming single-end reads${NC}\n"; fi
 echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if query-reads exist with suffix ${BLUE}\"${read_suffix}\"${NC} in path ${BLUE}\"${path_to_reads}\"${NC}"
-echo ""
 for (( i=0; i<${#query_samples[@]}; i++ )); do
 	#echo ${path_to_reads}/${query_samples[$i]}${read_suffix}
 	for file in ${path_to_reads}/${query_samples[$i]}${read_suffix}; do
@@ -143,7 +142,6 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 done
 echo -e "\t${GREEN}[OK]${NC}"
 echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if subject-reads exist with suffix ${BLUE}\"$read_suffix\"${NC} in path ${BLUE}\"${path_to_reads}\"${NC}"
-echo ""
 for (( i=0; i<${#reference_samples[@]}; i++ )); do
 	#echo ${path_to_reads}/${reference_samples[$i]}${read_suffix}
 	for file in ${path_to_reads}/${reference_samples[$i]}${read_suffix}; do
