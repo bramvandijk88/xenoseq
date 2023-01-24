@@ -85,8 +85,9 @@ parse_metadata $metadata
 
 sample=${query_samples[$s]}
 
-echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Starting xenoseq_find for ${sample} ${NC}" 
+echo -en "\n[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Starting xenoseq_find for ${sample} ${NC}"
 index=$output/${reference_samples[$s]}/assembly/final.contigs.fa
+echo ${reference_sample[$s]}
 reads=$output/${sample}/reads/prepped_reads.fastq
 out="$output/${sample}/read_mapping/${sample}_to_${reference_samples[$s]}"
 mkdir -p $output/${sample}/read_mapping

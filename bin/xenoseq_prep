@@ -42,11 +42,11 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
-dir=$(dirname $output)
-mkdir -p $dir/logs
-mkdir -p $dir/reads
-mkdir -p $dir/read_mapping
-mkdir -p ${dir}/reads/QCreports
+#dir=$(dirname $output)
+mkdir -p $output/logs
+mkdir -p $output/reads
+mkdir -p $output/read_mapping
+mkdir -p $output/reads/QCreports
 filename=$(basename -- "$output")
 filename="${filename%.*}"
 
