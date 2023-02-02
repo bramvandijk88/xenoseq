@@ -4,6 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
+  - parallel=20230122
   - blast=2.13.0=hf3cf87c_0
   - bwa=0.7.17=h7132678_9
   - fastp=0.23.2=hb7a2d85_2

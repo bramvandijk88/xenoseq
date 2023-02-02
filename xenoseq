@@ -67,7 +67,7 @@ metadata=""
 jobs=4
 cores=4
 blength=300
-verbal=false
+verbal=true
 bpid=99
 xeno_filename="xenotypic_contigs"
 
@@ -210,12 +210,14 @@ main_jobs=()
 
 for (( i=0; i<${#query_samples[@]}; i++ )); do
 	echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Generating xenoseq jobs for ${query_samples[$i]}" 
-	
+	if [[ "${query_samples[$i]}" == "${reference_samples[$i]}" ]]; then
+		continue	
+	fi
 	reads=$output/${query_samples[$i]}/reads/prepped_reads.fasta
 	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
 	main_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_main -s $i ${cmd_args[@]} \n "	
 done
-
+echo $main_jobs
 
 echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Running all xenoseq jobs (find, link, trace) in parallel ($jobs jobs at a time)" 
 echo -en $main_jobs | sort | uniq | parallel -j $jobs --will-cite

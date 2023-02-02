@@ -96,6 +96,7 @@ bwa_map $index $reads $out
 unmapped_to_fasta $out.sorted.bam ${reference_samples[$s]}
 assemble_mh $output/${sample}/reads/unique_reads.fasta 300 $output/${sample}/unique_assembly
 seqkit sort -l -r $output/${sample}/unique_assembly/final.contigs.fa > $output/${sample}/unique_contigs.fasta 2> $output/logs/seqkit.log
+success $? "Sorting unique contigs (seqkit)"
 
 echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] ${GREEN}Xenoseq_find completed succesfully for ${sample} ${NC}" 
 
