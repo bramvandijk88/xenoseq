@@ -14,7 +14,8 @@ PRP='\033[0;35m'	# COSMETIC
 GREY='\033[0;90m'	# CMD message
 NC='\033[0m' # No Color
 
-version="1.2.0"         # Major overhaul to suppor parallel processing
+version="1.2.2"         # 1.2 = Major overhaul to suppor parallel processing
+			# 1.2.2 = Skipping samples option
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
