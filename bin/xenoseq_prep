@@ -50,7 +50,7 @@ mkdir -p $output/reads/QCreports
 filename=$(basename -- "$output")
 filename="${filename%.*}"
 
-if [ -f $output/reads/prepped_reads.fasta ]; then
+if [ -f $output/reads/prepped_reads.fastq ]; then
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] ${ORANGE}NOTE: using pre-existing $output/reads/prepped_reads.fasta ${NC}"
 else
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Using fastp to prepare reads (trim, dedup, and merge)"
