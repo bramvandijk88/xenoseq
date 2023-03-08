@@ -19,7 +19,9 @@ function parse_metadata() {
 			query=$(echo $p | cut -d ' ' -f1)
 			query_samples+=($query)
 			ref=$(echo $p | cut -d ' ' -f2)
-			reference_samples+=($ref)
+			if [ ! $query == $ref ]; then
+				reference_samples+=($ref)
+			fi
 			out=$(echo $p | cut -d ' ' -f3)
 			output_dirs+=($out)
 		fi

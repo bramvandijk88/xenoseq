@@ -110,6 +110,7 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 		if [[ $force_relink = "true" ]]; then 
 			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
 		fi
+		echo ${ureference_samples[@]}
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			if [ ! $j -eq $s ]; then 	# Check that you are not "linking" to yourself
 				if [ -s $output/${sample}/unique_contigs.fasta ]; then

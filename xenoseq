@@ -130,6 +130,8 @@ elif [[ ! -f $metadata ]]; then
 fi
 parse_metadata $metadata
 
+ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+echo "${reference_samples[@]}"
 if [[ "$single" == true ]]; then echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${ORANGE}Note: option -S was set. Assuming single-end reads${NC}\n"; fi
 echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if query-reads exist with suffix ${BLUE}\"${read_suffix}\"${NC} in path ${BLUE}\"${path_to_reads}\"${NC}"
 for (( i=0; i<${#query_samples[@]}; i++ )); do
@@ -210,9 +212,10 @@ echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 3) MAIN PIPELINE
 main_jobs=()
 
 for (( i=0; i<${#query_samples[@]}; i++ )); do
-	echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Generating xenoseq jobs for ${query_samples[$i]}" 
+	echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Generating xenoseq jobs for ${query_samples[$i]}"
 	if [[ "${query_samples[$i]}" == "${reference_samples[$i]}" ]]; then
-		continue	
+		echo "Skipping xenoseq for ${query_samples[$i]} as no reference was indicated."
+		continue
 	fi
 	reads=$output/${query_samples[$i]}/reads/prepped_reads.fasta
 	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
