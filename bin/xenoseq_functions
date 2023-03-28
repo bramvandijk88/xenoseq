@@ -57,7 +57,7 @@ function samtools_coverage() {
 }
 
 function link_contig (){
-	blastn -query $1 -db $2 -outfmt '6 qseqid qlen sseqid slen pident length' \
+	blastn -query $1 -db $2 -outfmt '6 qseqid qlen sseqid slen pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq' \
 		| awk -v blength=$blength -v bpid=$bpid '{if($6>=blength && $5 >= bpid)print $0}' | sort | uniq | sort -nr | awk -v r="$4" '{print $0"\t"r}' >> $3
 	success $? "Blast linking"
 }

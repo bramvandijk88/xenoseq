@@ -14,7 +14,7 @@ PRP='\033[0;35m'	# COSMETIC
 GREY='\033[0;90m'	# CMD message
 NC='\033[0m' # No Color
 
-version="1.2.2"         # 1.2 = Major overhaul to suppor parallel processing
+version="1.2.3"         # 1.2 = Major overhaul to suppor parallel processing
 			# 1.2.2 = Skipping samples option
 
 echo -e "\n${ORANGE} __    __                                                             ";
@@ -220,7 +220,6 @@ for (( i=0; i<${#query_samples[@]}; i++ )); do
 	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
 	main_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_main -s $i ${cmd_args[@]} \n "	
 done
-echo $main_jobs
 
 echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Running all xenoseq jobs (find, link, trace) in parallel ($jobs jobs at a time)" 
 echo -en $main_jobs | sort | uniq | parallel -j $jobs --will-cite

@@ -56,10 +56,10 @@ else
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Using fastp to prepare reads (trim, dedup, and merge)"
 	if [[ "$r2" == "" ]]; then 
 		fastp -x -l 75 --cut_front 25 --cut_tail 25 -D --adapter_fasta $SCRIPT_PATH/adapter_sequences.fa -i $r1 -o $output/reads/prepped_reads.fastq -h ${output}/reads/QCreports/${filename}.html -j ${output}/reads/QCreports/${filename}.json &> $output/logs/fast.log
-		echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Fastp completed; $BLUE$(basename $r1)$NC --> ${BLUE}$(dirname $output)/${filename}.fasta${NC}"
+		echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Fastp completed; $BLUE$(basename $r1)$NC --> ${BLUE}$(dirname $output)/reads/${filename}.fastq${NC}"
 	else
 		fastp -x -l 75 --cut_front 25 --cut_tail 25 -D --adapter_fasta $SCRIPT_PATH/adapter_sequences.fa -i $r1 -I $r2 -m --merged_out $output/reads/prepped_reads.fastq --include_unmerged -h ${output}/reads/QCreports/${filename}.html -j ${output}/reads/QCreports/${filename}.json &> $output/logs/fast.log
-		echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Fastp completed; $BLUE$(basename $r1)$NC + $BLUE$(basename $r2)$NC --> ${BLUE}$(dirname $output)/${filename}.fasta${NC}"
+		echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Fastp completed; $BLUE$(basename $r1)$NC + $BLUE$(basename $r2)$NC --> ${BLUE}$(dirname $output)/reads/${filename}.fastq${NC}"
 	fi
 	success $? "Fastq"
 fi

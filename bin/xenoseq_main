@@ -110,7 +110,6 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 		if [[ $force_relink = "true" ]]; then 
 			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
 		fi
-		echo ${ureference_samples[@]}
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
 			if [ ! $j -eq $s ]; then 	# Check that you are not "linking" to yourself
 				if [ -s $output/${sample}/unique_contigs.fasta ]; then
@@ -123,7 +122,8 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 			fi
 		done
 		if ls $output/${sample}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
-			cat $output/${sample}/unique_contig_links_to_*.tbl > $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
+			echo "qseqid qlen sseqid slen pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq" > $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
+			cat $output/${sample}/unique_contig_links_to_*.tbl >> $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
 			rm -f $output/${sample}/unique_contig_links_to_*.tbl
 			rm -f $output/${sample}/unique_contig_links_to_*.names
 			cat $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl | cut -f1 > $output/${sample}/${xeno_filename}.txt
