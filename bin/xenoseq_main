@@ -122,7 +122,7 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 			fi
 		done
 		if ls $output/${sample}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
-			echo "qseqid qlen sseqid slen pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq" > $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
+			echo "qseqid qlen sseqid slen pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq reference" > $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
 			cat $output/${sample}/unique_contig_links_to_*.tbl >> $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
 			rm -f $output/${sample}/unique_contig_links_to_*.tbl
 			rm -f $output/${sample}/unique_contig_links_to_*.names
