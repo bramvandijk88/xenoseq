@@ -14,8 +14,7 @@ PRP='\033[0;35m'	# COSMETIC
 GREY='\033[0;90m'	# CMD message
 NC='\033[0m' # No Color
 
-version="1.2.3"         # 1.2 = Major overhaul to suppor parallel processing
-			# 1.2.2 = Skipping samples option
+version="1.2.4"         
 
 echo -e "\n${ORANGE} __    __                                                             ";
 echo "/  |  /  |                                                            ";
@@ -130,11 +129,14 @@ elif [[ ! -f $metadata ]]; then
 fi
 parse_metadata $metadata
 
+
 ureference_samples=($(echo "${reference_samples[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 if [[ "$single" == true ]]; then echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${ORANGE}Note: option -S was set. Assuming single-end reads${NC}\n"; fi
 echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if query-reads exist with suffix ${BLUE}\"${read_suffix}\"${NC} in path ${BLUE}\"${path_to_reads}\"${NC}"
 for (( i=0; i<${#query_samples[@]}; i++ )); do
-	#echo ${path_to_reads}/${query_samples[$i]}${read_suffix}
+	#echo "${query_samples[$i]}"
+	#echo "${query_samples[@]}"
+	#echo "${reference_samples[@]}"
 	for file in ${path_to_reads}/${query_samples[$i]}${read_suffix}; do
 		if [ ! -f $file ]; then
 			echo -en "\t[ERROR]\n\nReads for \"${query_samples[$i]}\" not found at ${BLUE}${path_to_reads}${NC}/${query_samples[$i]}${BLUE}${read_suffix}${NC}. Try setting the correct path (-p) and suffix (-r) to locate your reads \n\n"
@@ -145,6 +147,7 @@ done
 echo -e "\t${GREEN}[OK]${NC}"
 echo -en "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] Checking if subject-reads exist with suffix ${BLUE}\"$read_suffix\"${NC} in path ${BLUE}\"${path_to_reads}\"${NC}"
 for (( i=0; i<${#reference_samples[@]}; i++ )); do
+	if [[ ${reference_samples[$i]} == "empty" ]]; then continue; fi
 	#echo ${path_to_reads}/${reference_samples[$i]}${read_suffix}
 	for file in ${path_to_reads}/${reference_samples[$i]}${read_suffix}; do
 		if [ ! -f $file ]; then
@@ -167,6 +170,7 @@ echo -e "[xenoseq_main     $(date +%d-%m_%H:%M:%S)] ${BLUE}STEP 2) PREPARING ALL
 
 prep_jobs=()
 for (( i=0; i<${#reference_samples[@]}; i++ )); do
+	if [[ ${reference_samples[$i]} == "empty" ]]; then continue; fi
 	echo -e "[xenoseq_prep     $(date +%d-%m_%H:%M:%S)] Generating xenoseq_prep jobs for reference ${reference_samples[$i]}" 
 
 	r1=$(ls ${path_to_reads}/${reference_samples[$i]}${read_suffix} | head -n 1)
@@ -212,10 +216,12 @@ main_jobs=()
 
 for (( i=0; i<${#query_samples[@]}; i++ )); do
 	echo -e "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Generating xenoseq jobs for ${query_samples[$i]}"
-	if [[ "${query_samples[$i]}" == "${reference_samples[$i]}" ]]; then
-		echo "Skipping xenoseq for ${query_samples[$i]} as no reference was indicated."
+	
+	if [[ "${reference_samples[$i]}" == "empty" ]]; then
+		echo "[xenoseq_find     $(date +%d-%m_%H:%M:%S)] Skipping xenoseq for ${query_samples[$i]} as no reference was indicated."
 		continue
 	fi
+
 	reads=$output/${query_samples[$i]}/reads/prepped_reads.fasta
 	out="$output/${query_samples[$i]}/read_mapping/${query_samples[$i]}_to_${reference_samples[$i]}"
 	main_jobs+="bash ${SCRIPT_PATH}/bin/xenoseq_main -s $i ${cmd_args[@]} \n "	

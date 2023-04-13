@@ -111,6 +111,7 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 			xeno_filename="xenotypic_contigs_L${blength}_P${bpid}"
 		fi
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
+			if [[ ${ureference_samples[$j]} == "empty" ]]; then continue; fi;
 			if [ ! $j -eq $s ]; then 	# Check that you are not "linking" to yourself
 				if [ -s $output/${sample}/unique_contigs.fasta ]; then
 					index=$output/${ureference_samples[$j]}/assembly/final.contigs.fa
@@ -123,6 +124,7 @@ if [[ $link = "true" || $force_relink = "true" ]]; then
 		done
 		if ls $output/${sample}/unique_contig_links_to_*.tbl 1> /dev/null 2>&1; then
 			echo "qseqid qlen sseqid slen pident length mismatch gapopen qstart qend sstart send evalue bitscore qseq sseq reference" > $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
+			rm $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
 			cat $output/${sample}/unique_contig_links_to_*.tbl >> $output/${sample}/unique_contig_all_links_L${blength}_P${bpid}.tbl
 			rm -f $output/${sample}/unique_contig_links_to_*.tbl
 			rm -f $output/${sample}/unique_contig_links_to_*.names
@@ -155,6 +157,7 @@ if [ $trace == "true" ] ; then
 		done
 
 		for (( j=0; j<${#ureference_samples[@]}; j++ )); do
+			if [[ ${ureference_samples[$j]} == "empty" ]]; then continue; fi;
 			index=$output/${sample}/${xeno_filename}.fasta			
 			reads="$output/${ureference_samples[$j]}/reads/prepped_reads.fastq"
 			out="$output/${ureference_samples[$j]}/read_mapping/${ureference_samples[$j]}_to_${xeno_filename}_from_${sample}"

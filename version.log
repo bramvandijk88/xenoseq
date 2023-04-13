@@ -15,3 +15,7 @@
 1.2.1	    Included a new type of output in the reference samples called "source_contigs", which are the fully-assembled contigs which are (part of) a mobile element
 ---------------------------------------------------------------------------
 1.2.2	    Small changes that enables users to skip certain samples from being considered for xenoseq_find, while still being used in xenoseq_trace. 
+---------------------------------------------------------------------------
+1.2.3	    Added a function to leave the reference column empty so you can skip looking for contigs in some samples, while still tracing the identified contigs in those samples for abundance estimates 
+---------------------------------------------------------------------------
+1.2.4	    Streamlined some of the logs and fixed a minor issue with version 1.2.3.  

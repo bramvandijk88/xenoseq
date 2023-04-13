@@ -19,7 +19,9 @@ function parse_metadata() {
 			query=$(echo $p | cut -d ' ' -f1)
 			query_samples+=($query)
 			ref=$(echo $p | cut -d ' ' -f2)
-			if [ ! $query == $ref ]; then
+			if [[ "$ref" == "$query" ]]; then 
+				reference_samples+=("empty")
+			else
 				reference_samples+=($ref)
 			fi
 			out=$(echo $p | cut -d ' ' -f3)
@@ -38,8 +40,6 @@ function trim() {
 	else
 		command="${SCRIPT_PATH}/xenoseq_bin/xenoseq_prep -r1 $r1 -r2 $r2 -c $cores -o $out;"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		#eval $command
-		#success $? "Trimming (fastp)"
 	fi
 }
 
@@ -74,7 +74,7 @@ function assemble_mh() {
 		rm -rf $out
 		command="megahit -r $reads -t $cores --min-contig-len $minlen -o $out"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		$command 2> ${output}/${reference_samples[$i]}/logs/megahit.log
+		$command 2>> ${output}/${query_samples[$i]}/logs/megahit.log
 		success $? "Assembly (megahit)"
 	fi
 }
@@ -87,7 +87,7 @@ function bwa_index()  {
 	else
 		command="bwa index $1"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		$command 2> ${output}/${reference_samples[$i]}/logs/bwa_index.log
+		$command 2> ${output}/${query_samples[$i]}/logs/bwa_index.log
 		success $? "Bwa index"
 	fi
 }
@@ -99,7 +99,7 @@ function blastdb() {
 	else
 		command="makeblastdb -in $1 -dbtype nucl;"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		$command > ${output}/${reference_samples[$i]}/logs/blastdb.log 2>&1
+		$command > ${output}/${query_samples[$i]}/logs/blastdb.log 2>&1
 		success $? "Make blastdb"
 	fi
 }
@@ -111,12 +111,11 @@ function bwa_map()  {
 	else
 		command="bwa mem -t $cores $1 $2"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		#echo $command
-		$command > $3.bam 2> ${output}/${reference_samples[$i]}/logs/bwa_map.log 		
+		$command > $3.bam 2> ${output}/${query_samples[$i]}/logs/bwa_map.log 		
 		success $? "Bwa mapping"
 		command="samtools sort -@ $cores $3.bam -o $3.sorted.bam"
 		echo -e "[xenoseq_cmd      $(date +%d-%m_%H:%M:%S)] ${GREY}$command${NC}"
-		$command 2> ${output}/${reference_samples[$i]}/logs/samtools.log
+		$command 2> ${output}/${query_samples[$i]}/logs/samtools.log
 		success $? "Samtools sort"
 	fi
 }
